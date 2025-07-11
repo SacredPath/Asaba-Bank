@@ -65,6 +65,15 @@ export default function Dashboard() {
   });
   const [withdrawalLimit, setWithdrawalLimit] = useState(2);
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
   useEffect(() => {
     if (loading || !user) return; // wait for auth and ensure user is not null
 
@@ -151,6 +160,12 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-2.5">
             <Logo />
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </header>
