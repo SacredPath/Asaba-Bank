@@ -79,14 +79,14 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
 
       {/* Account Summary Cards */}
       <div className="grid grid-cols-1 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
           <h2 className="text-lg font-semibold text-gray-600 mb-1">Account Holder</h2>
           <p className="text-xl md:text-2xl font-bold text-gray-800">{accountName || 'Loading...'}</p>
         </div>
 
         <div
           ref={checkingRef}
-          className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300 cursor-pointer group"
+          className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
           onMouseEnter={handleCheckingHover}
           onMouseLeave={() => setShowCheckingModal(false)}
         >
@@ -107,7 +107,7 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
 
         <div
           ref={savingsRef}
-          className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300 cursor-pointer group"
+          className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
           onMouseEnter={handleSavingsHover}
           onMouseLeave={() => setShowSavingsModal(false)}
         >
@@ -127,11 +127,11 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+        <div className="grid grid-cols-2 gap-4 mt-6">
+          <button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
             Deposit
           </button>
-          <button className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+          <button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
             Withdraw
           </button>
         </div>

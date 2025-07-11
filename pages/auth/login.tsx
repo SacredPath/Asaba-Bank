@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useSupabase } from '@/hooks/useSupabase';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 function Login() {
   const supabase = useSupabase();
@@ -18,6 +19,9 @@ function Login() {
     setErrorMsg('');
 
     try {
+      // Simulate 3-second delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -36,6 +40,7 @@ function Login() {
 
   return (
     <div>
+      <LoadingOverlay isVisible={loading} message="Logging In..." />
       <div style={{
         minHeight: '100vh',
         backgroundColor: '#000000',

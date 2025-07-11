@@ -200,8 +200,8 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-      <h2 className="text-2xl font-bold mb-4">{accountType} Withdrawals</h2>
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">{accountType} Withdrawals</h2>
 
       {/* Balance Display */}
       <div className="mb-6 p-4 border rounded-lg bg-blue-50">
@@ -268,7 +268,7 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
         <button
           onClick={handleWithdrawal}
           disabled={isProcessing || !selectedRecipient || !amount || parseFloat(amount) <= 0 || withdrawalCount >= 2}
-          className="w-full bg-red-500 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
+          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           {isProcessing ? 'Processing...' : 'Submit Withdrawal'}
         </button>

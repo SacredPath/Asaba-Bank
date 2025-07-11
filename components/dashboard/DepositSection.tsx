@@ -122,8 +122,8 @@ export default function DepositSection({ accountType, userId, isAuthenticated }:
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-      <h2 className="text-2xl font-bold mb-4">{accountType} Deposits</h2>
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">{accountType} Deposits</h2>
       
       <div className="space-y-4">
         <div>
@@ -178,7 +178,7 @@ export default function DepositSection({ accountType, userId, isAuthenticated }:
         <button
           onClick={handleDeposit}
           disabled={isProcessing || !amount || parseFloat(amount) <= 0}
-          className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           {isProcessing ? 'Processing...' : `Submit ${method} Deposit`}
         </button>

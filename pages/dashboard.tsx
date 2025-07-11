@@ -25,6 +25,7 @@ import Logo from '@/components/Logo';
 import TransactionHistory from '@/components/dashboard/TransactionHistory';
 import Bio from '@/components/dashboard/Bio';
 import RecipientManager from '@/components/dashboard/RecipientManager';
+import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 
@@ -70,13 +71,18 @@ export default function Dashboard() {
     savings: 0,
   });
   const [withdrawalLimit, setWithdrawalLimit] = useState(2);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
+      // Simulate 3-second delay
+      await new Promise(resolve => setTimeout(resolve, 3000));
       await supabase.auth.signOut();
       router.push('/auth/login');
     } catch (error) {
       console.error('Error logging out:', error);
+      setIsLoggingOut(false);
     }
   };
 
@@ -156,7 +162,8 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="bg-blue-700 text-white p-3 shadow-sm">
+      <LoadingOverlay isVisible={isLoggingOut} message="Logging Out..." />
+      <header className="bg-gradient-to-r from-blue-700 to-blue-800 text-white p-3 shadow-lg">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <h1 className="text-xs sm:text-sm md:text-base font-bold truncate">
@@ -178,8 +185,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="p-3.5 space-y-5 flex-1 container mx-auto">
-        <div className="bg-white rounded-lg shadow p-3.5 mb-3.5">
+      <main className="p-4 space-y-6 flex-1 container mx-auto max-w-6xl">
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-4 border border-gray-100">
           <nav className="flex flex-wrap gap-1.5 mb-3.5 overflow-x-auto pb-2">
             <button
               onClick={() => setTab('summary')}
@@ -248,7 +255,7 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-2">
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
           {tab === 'summary' && user && <AccountSummary userId={user.id} />}
 
           {tab === 'deposits' && (
@@ -269,13 +276,24 @@ export default function Dashboard() {
             </div>
           )}
 
-          {tab === 'withdrawals' && user && (
-            <WithdrawSection
-              accountType="Checking"
-              balance={accountBalances.checking}
-              withdrawalLimit={withdrawalLimit}
-              userId={user ? user.id : ''}
-            />
+          {tab === 'withdrawals' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-bold">Withdrawals</h2>
+              <div className="grid grid-cols-1 gap-4">
+                <WithdrawSection
+                  accountType="Checking"
+                  balance={accountBalances.checking}
+                  withdrawalLimit={withdrawalLimit}
+                  userId={user ? user.id : ''}
+                />
+                <WithdrawSection
+                  accountType="Savings"
+                  balance={accountBalances.savings}
+                  withdrawalLimit={withdrawalLimit}
+                  userId={user ? user.id : ''}
+                />
+              </div>
+            </div>
           )}
 
           {tab === 'transactions' && <TransactionHistory />}
