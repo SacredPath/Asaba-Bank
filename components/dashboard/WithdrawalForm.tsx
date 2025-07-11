@@ -60,6 +60,12 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         return;
       }
 
+      // Validate recipient selection
+      if (!formData.recipientId) {
+        toast.error('Please select a recipient to withdraw to');
+        return;
+      }
+
       // Get current user profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -93,6 +99,10 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         return;
       }
 
+      // Get recipient details for better transaction description
+      const selectedRecipient = recipients.find(r => r.id === formData.recipientId);
+      const recipientName = selectedRecipient ? selectedRecipient.nickname : 'Unknown Recipient';
+
       // Update balance
       const newBalance = currentBalance - totalAmount;
       const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
@@ -114,16 +124,16 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
           user_id: user?.id,
           amount: -amount,
           type: 'withdrawal',
-          description: `Withdrawal to ${formData.transferType.toUpperCase()} - ${formData.description}`,
+          description: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`,
           account_type: formData.accountType,
           transfer_type: formData.transferType,
-          recipient_id: formData.recipientId || null,
+          recipient_id: formData.recipientId,
           fee: fee
         });
 
       if (transactionError) throw transactionError;
 
-      toast.success('Withdrawal processed successfully');
+      toast.success(`Withdrawal to ${recipientName} processed successfully`);
       onClose();
     } catch (error) {
       console.error('Withdrawal error:', error);
@@ -196,25 +206,32 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         </div>
 
         {/* Recipient Selection */}
-        {recipients.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Recipient (Optional)
-            </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Recipient *
+          </label>
+          {recipients.length > 0 ? (
             <select
               value={formData.recipientId}
               onChange={(e) => setFormData({...formData, recipientId: e.target.value})}
+              required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
-              <option value="">Select recipient</option>
+              <option value="">Choose a recipient to withdraw to</option>
               {recipients.map((recipient) => (
                 <option key={recipient.id} value={recipient.id}>
-                  {recipient.nickname} - {recipient.bank_name}
+                  {recipient.nickname} - {recipient.account_name} ({recipient.bank_name})
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>No recipients found.</strong> You need to add a recipient account before making withdrawals.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Description */}
         <div>
@@ -233,10 +250,10 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || recipients.length === 0}
           className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Processing...' : 'Withdraw Funds'}
+          {loading ? 'Processing...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
         </button>
       </form>
 
