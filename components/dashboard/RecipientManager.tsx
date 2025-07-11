@@ -28,17 +28,32 @@ export default function RecipientManager() {
     bank_name: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const supabase = useSupabase();
 
   useEffect(() => {
+    if (authLoading) {
+      // Still loading auth, don't fetch recipients yet
+      return;
+    }
+    
     if (user?.id) {
       fetchRecipients();
+    } else if (user === null) {
+      // User is not authenticated
+      setLoading(false);
     }
-  }, [user?.id]);
+    // If user is undefined, still loading
+  }, [user?.id, user, authLoading]);
 
   const fetchRecipients = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID available, skipping recipient fetch');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Fetching recipients for user:', user.id);
 
     try {
       const { data, error } = await supabase
@@ -47,7 +62,12 @@ export default function RecipientManager() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Recipients loaded:', data);
       setRecipients(data || []);
     } catch (error: any) {
       console.error('Error fetching recipients:', error);
@@ -147,7 +167,7 @@ export default function RecipientManager() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return <div className="text-center p-6">Loading recipients...</div>;
   }
 
