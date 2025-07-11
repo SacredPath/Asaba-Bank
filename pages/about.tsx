@@ -20,8 +20,8 @@ export default function About() {
               <div className="space-y-6">
                 <p className="text-gray-600">
                   Founded in 2009, Asaba National Bank has grown from a visionary idea into one of
-                  New York's most respected financial institutions. Headquartered in the heart of
-                  Manhattan's financial district, our bank combines the personal touch of a local
+                  Minnesota's most respected financial institutions. Headquartered in the heart of
+                  Minneapolis, our bank combines the personal touch of a local
                   institution with the resources and expertise of a major banking organization.
                 </p>
                 <p className="text-gray-600">
@@ -162,24 +162,24 @@ export default function About() {
             </div>
 
             <div className="mb-16">
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">Our New York Legacy</h2>
+              <h2 className="text-3xl font-bold text-gray-800 mb-6">Our Minnesota Legacy</h2>
               <div className="space-y-6">
                 <p className="text-gray-600">
-                  Situated in the heart of New York City's financial district, Asaba National Bank
+                  Situated in the heart of Minneapolis, Asaba National Bank
                   has been a cornerstone of the local community since 2009. Our flagship office,
-                  located at 1 Wall Street, stands as a testament to our commitment to excellence
-                  and our deep roots in the city.
+                  located at 123 Main Street, stands as a testament to our commitment to excellence
+                  and our deep roots in the Twin Cities.
                 </p>
                 <p className="text-gray-600">
                   We're proud to support local businesses, community initiatives, and economic growth
-                  in New York. Our team actively participates in local events, charity programs,
+                  in Minnesota. Our team actively participates in local events, charity programs,
                   and educational partnerships, demonstrating our dedication to making a positive
                   impact in the community.
                 </p>
                 <p className="text-gray-600">
-                  Our New York headquarters provides our customers with access to world-class
+                  Our Minneapolis headquarters provides our customers with access to world-class
                   financial services while maintaining a personal touch. We understand the unique
-                  needs of New York's diverse business community and tailor our solutions
+                  needs of Minnesota's diverse business community and tailor our solutions
                   accordingly.
                 </p>
               </div>
