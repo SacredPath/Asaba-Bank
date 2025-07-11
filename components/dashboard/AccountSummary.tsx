@@ -1,180 +1,142 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useSupabase } from '@/hooks/useSupabase';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
+'use client';
 
-interface Props {
-  userId: string;
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useSupabase } from '@/hooks/useSupabase';
+import DepositForm from './DepositForm';
+import WithdrawalForm from './WithdrawalForm';
+
+interface AccountSummaryProps {
+  profile: any;
+  onUpdate: () => void;
 }
 
-const AccountSummary: React.FC<Props> = ({ userId }) => {
-  const checkingRef = useRef<HTMLDivElement>(null);
-  const savingsRef = useRef<HTMLDivElement>(null);
-  const [showCheckingModal, setShowCheckingModal] = useState(false);
-  const [showSavingsModal, setShowSavingsModal] = useState(false);
-  const supabase = useSupabase();
-
-  const handleCheckingHover = useCallback(() => {
-    setShowCheckingModal(true);
-    const timer = setTimeout(() => {
-      setShowCheckingModal(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleSavingsHover = useCallback(() => {
-    setShowSavingsModal(true);
-    const timer = setTimeout(() => {
-      setShowSavingsModal(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
+export default function AccountSummary({ profile, onUpdate }: AccountSummaryProps) {
   const { user } = useAuth();
+  const supabase = useSupabase();
+  const [showDepositForm, setShowDepositForm] = useState(false);
+  const [showWithdrawForm, setShowWithdrawForm] = useState(false);
 
-  const [accountName, setAccountName] = useState('');
-  const [checkingBalance, setCheckingBalance] = useState(0);
-  const [savingsBalance, setSavingsBalance] = useState(0);
+  const handleDepositClose = () => {
+    setShowDepositForm(false);
+    onUpdate(); // Refresh the data
+  };
 
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (!userId) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('checking_balance, savings_balance')
-        .eq('id', userId)
-        .single();
-
-      if (data) {
-        setCheckingBalance(data.checking_balance || 0);
-        setSavingsBalance(data.savings_balance || 0);
-      }
-    };
-
-    fetchBalances();
-  }, [userId, supabase]);
-
-  useEffect(() => {
-    const fetchAccountName = async () => {
-      if (!user) return;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      if (data?.full_name) setAccountName(data.full_name);
-    };
-
-    fetchAccountName();
-  }, [user, supabase]);
+  const handleWithdrawClose = () => {
+    setShowWithdrawForm(false);
+    onUpdate(); // Refresh the data
+  };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800">Account Summary</h1>
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Summary</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Checking Account */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-900">Checking Account</h3>
+              <p className="text-sm text-blue-700">Primary Account</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-blue-900">
+                ${profile?.checking_balance?.toFixed(2) || '0.00'}
+              </p>
+              <p className="text-xs text-blue-600">Available Balance</p>
+            </div>
+          </div>
+          
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowDepositForm(true)}
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+            >
+              Deposit
+            </button>
+            <button
+              onClick={() => setShowWithdrawForm(true)}
+              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium"
+            >
+              Withdraw
+            </button>
+          </div>
+        </div>
+
+        {/* Savings Account */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-green-900">Savings Account</h3>
+              <p className="text-sm text-green-700">High-Yield Savings</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-green-900">
+                ${profile?.savings_balance?.toFixed(2) || '0.00'}
+              </p>
+              <p className="text-xs text-green-600">Available Balance</p>
+            </div>
+          </div>
+          
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowDepositForm(true)}
+              className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition text-sm font-medium"
+            >
+              Deposit
+            </button>
+            <button
+              onClick={() => setShowWithdrawForm(true)}
+              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium"
+            >
+              Withdraw
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Account Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-          <h2 className="text-lg font-semibold text-gray-600 mb-1">Account Holder</h2>
-          <p className="text-xl md:text-2xl font-bold text-gray-800">{accountName || 'Loading...'}</p>
-        </div>
-
-        <div
-          ref={checkingRef}
-          className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
-          onMouseEnter={handleCheckingHover}
-          onMouseLeave={() => setShowCheckingModal(false)}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-green-500 text-lg">🌱</span>
-            <h3 className="text-lg md:text-xl font-bold text-gray-700 group-hover:text-green-600 transition-colors duration-200">Life Green Checking</h3>
+      {/* Account Information */}
+      <div className="mt-6 bg-gray-50 rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">Account Information</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="text-gray-600">Account Holder:</p>
+            <p className="font-medium">{profile?.full_name || 'N/A'}</p>
           </div>
-          <p className="text-lg md:text-xl font-semibold text-green-600 mt-2">
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }).format(checkingBalance)}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">High-yield checking with no monthly fees</p>
-        </div>
-
-        <div
-          ref={savingsRef}
-          className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
-          onMouseEnter={handleSavingsHover}
-          onMouseLeave={() => setShowSavingsModal(false)}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-blue-500 text-lg">🌳</span>
-            <h3 className="text-lg md:text-xl font-bold text-gray-700 group-hover:text-blue-600 transition-colors duration-200">BigTree Savings</h3>
+          <div>
+            <p className="text-gray-600">Account Number:</p>
+            <p className="font-medium">****{profile?.id?.slice(-4) || '****'}</p>
           </div>
-          <p className="text-lg md:text-xl font-semibold text-blue-600 mt-2">
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }).format(savingsBalance)}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">High-interest savings with competitive rates</p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
-            Deposit
-          </button>
-          <button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
-            Withdraw
-          </button>
+          <div>
+            <p className="text-gray-600">Routing Number:</p>
+            <p className="font-medium">123456789</p>
+          </div>
+          <div>
+            <p className="text-gray-600">Member Since:</p>
+            <p className="font-medium">
+              {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Modals */}
-      {showCheckingModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          style={{ pointerEvents: 'none' }}
-        >
-          <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Life Green Checking</h3>
-            <p className="text-sm text-gray-600 mb-3">High-yield checking account with no monthly fees</p>
-            <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
-              <li>Free unlimited transactions</li>
-              <li>No minimum balance requirement</li>
-              <li>Instant mobile deposits</li>
-              <li>24/7 customer support</li>
-            </ul>
+      {/* Deposit Modal */}
+      {showDepositForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="max-w-md w-full mx-4">
+            <DepositForm onClose={handleDepositClose} />
           </div>
         </div>
       )}
 
-      {showSavingsModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          style={{ pointerEvents: 'none' }}
-        >
-          <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">BigTree Savings</h3>
-            <p className="text-sm text-gray-600 mb-3">High-interest savings account with competitive rates</p>
-            <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
-              <li>FDIC insured up to $250,000</li>
-              <li>No minimum balance requirement</li>
-              <li>Monthly interest payments</li>
-              <li>Easy transfers to checking</li>
-            </ul>
+      {/* Withdraw Modal */}
+      {showWithdrawForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="max-w-md w-full mx-4">
+            <WithdrawalForm onClose={handleWithdrawClose} />
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default AccountSummary;
+}

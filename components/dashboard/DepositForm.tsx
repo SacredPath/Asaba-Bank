@@ -1,186 +1,265 @@
-// components/forms/DepositForm.tsx
-'use client'; // This directive marks the component as a Client Component.
+'use client';
 
 import { useState, useEffect } from 'react';
-// Import createBrowserClient for client-side Supabase interactions.
-// This is the correct way to initialize the Supabase client in client components
-// for Next.js App Router.
+import { useAuth } from '@/hooks/useAuth';
 import { useSupabase } from '@/hooks/useSupabase';
-import { useAuth } from '@/hooks/useAuth'; // Assuming useAuth is a client-side hook
-import toast from 'react-hot-toast'; // Assuming react-hot-toast is used for notifications
+import toast from 'react-hot-toast';
 
 interface DepositFormProps {
-  onDepositSuccess: () => void; // Callback to refresh balance/transactions after deposit
+  onClose: () => void;
 }
 
-export default function DepositForm({ onDepositSuccess }: DepositFormProps) {
-  const [amount, setAmount] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Get user from your auth hook
+export default function DepositForm({ onClose }: DepositFormProps) {
+  const { user } = useAuth();
   const supabase = useSupabase();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    amount: '',
+    accountType: 'checking',
+    transferType: 'ach',
+    accountHolderName: '',
+    accountNumber: '',
+    routingNumber: '',
+    swiftCode: '',
+    description: ''
+  });
+  const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Function to fetch the user's balance
-  const fetchBalance = async () => {
-    if (!user?.id) {
-      setError('User not authenticated. Cannot fetch balance.');
-      setLoading(false); // Use general loading for initial fetch
-      return;
-    }
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
 
-    setLoading(true);
-    setError(null);
-
+  const loadUserProfile = async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('balances') // Assuming your balance data is in a 'balances' table
-        .select('amount') // Select the 'amount' column
-        .eq('user_id', user.id) // Filter by the current user's ID
-        .single(); // Expect a single row for the user's balance
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "No rows found"
-        throw fetchError;
-      }
-
-      setBalance(data?.amount ?? 0); // Update balance state, default to 0 if no data
-    } catch (err: any) {
-      console.error('Error fetching balance:', err.message);
-      setError(`Failed to load balance: ${err.message}`);
-      toast.error(`Failed to load balance: ${err.message}`);
-    } finally {
-      setLoading(false);
+      if (error) throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
     }
   };
 
-  // useEffect to fetch balance when the component mounts or user changes
-  useEffect(() => {
-    fetchBalance();
-  }, [user?.id, supabase]); // Dependencies: re-run if user.id or supabase client changes
-
-  const handleDeposit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (amount <= 0) {
-      toast.error('Please enter a positive amount to deposit.');
-      setLoading(false);
-      return;
-    }
-    if (!user?.id) {
-      toast.error('User not logged in.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // --- IMPORTANT: This is a simplified client-side transaction logic. ---
-      // For production-grade applications, especially for financial transactions,
-      // it is highly recommended to perform sensitive operations like
-      // updating balances via secure server-side functions (e.g., Supabase Functions,
-      // Next.js API Routes, or Server Actions) to enforce security rules and prevent tampering.
-
-      // Fetch current balance to calculate new balance
-      const { data: currentBalanceData, error: fetchError } = await supabase
-        .from('balances')
-        .select('amount')
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "No rows found"
-        throw fetchError;
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        toast.error('Please enter a valid amount');
+        return;
       }
 
-      const newBalance = (currentBalanceData?.amount || 0) + amount;
+      // Calculate fee for wire transfers
+      let fee = 0;
+      if (formData.transferType === 'wire') {
+        fee = 25; // Wire transfer fee
+        toast.success('Wire transfer fee of $25 will be applied');
+      }
 
-      // Upsert (insert or update) the new balance
+      // Update balance
+      const currentBalance = formData.accountType === 'checking' 
+        ? userProfile?.checking_balance || 0 
+        : userProfile?.savings_balance || 0;
+      
+      const newBalance = currentBalance + amount;
+      const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
+      
       const { error: updateError } = await supabase
-        .from('balances')
-        .upsert(
-          { user_id: user.id, amount: newBalance },
-          { onConflict: 'user_id' } // If a row with user_id exists, update it; otherwise, insert.
-        );
+        .from('profiles')
+        .update({ [updateField]: newBalance })
+        .eq('id', user?.id);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      // Record the deposit transaction
+      // Log transaction
       const { error: transactionError } = await supabase
-        .from('transactions') // Assuming a 'transactions' table
+        .from('transactions')
         .insert({
-          sender_user_id: user.id, // Or receiver_user_id depending on your transaction model
+          user_id: user?.id,
           amount: amount,
           type: 'deposit',
-          status: 'completed',
-          receiver_account_number: 'N/A', // Placeholder
-          bank_name: 'N/A', // Placeholder
-          routing_number: 'N/A', // Placeholder
-          method: 'Bank Transfer', // Example method
+          description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.description}`,
+          account_type: formData.accountType,
+          transfer_type: formData.transferType,
+          account_holder_name: formData.accountHolderName,
+          account_number: formData.accountNumber,
+          routing_number: formData.routingNumber,
+          swift_code: formData.swiftCode,
+          fee: fee
         });
 
-      if (transactionError) {
-        console.error('Error recording deposit transaction:', transactionError.message);
-        // Even if transaction recording fails, balance update might have succeeded.
-        // Consider robust rollback/compensation logic for production.
-      }
+      if (transactionError) throw transactionError;
 
-      toast.success('Deposit successful!');
-      setAmount(0); // Reset the deposit amount input
-      onDepositSuccess(); // Trigger callback to refresh parent component's data (e.g., balance)
-
-    } catch (error: any) {
-      console.error('Deposit error:', error.message);
-      toast.error(`Deposit failed: ${error.message}`);
+      toast.success('Deposit processed successfully');
+      onClose();
+    } catch (error) {
+      console.error('Deposit error:', error);
+      toast.error('Deposit failed');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading && balance === null) {
-    return <div className="text-center p-6">Loading deposit form...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center p-6 text-red-600">Error: {error}</div>;
-  }
-
-  if (!user?.id) {
-    return <div className="text-center p-6 text-gray-600">Please log in to make a deposit.</div>;
-  }
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Deposit Funds</h2>
-
-      {/* Display Current Balance */}
-      <div className="mb-6 p-4 border rounded-lg bg-blue-50 text-blue-800">
-        <p className="text-lg font-semibold">Your Current Balance:</p>
-        <p className="text-3xl font-bold">${balance !== null ? balance.toFixed(2) : 'N/A'}</p>
+    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Deposit Funds</h2>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
-      <form onSubmit={handleDeposit}>
-        <div className="mb-4">
-          <label htmlFor="depositAmount" className="block text-gray-700 text-sm font-bold mb-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Amount */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Amount
           </label>
           <input
             type="number"
-            id="depositAmount"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={amount}
-            onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-            min="0"
+            step="0.01"
+            min="0.01"
             required
-            disabled={loading}
+            value={formData.amount}
+            onChange={(e) => setFormData({...formData, amount: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Enter amount"
           />
         </div>
+
+        {/* Account Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            To Account
+          </label>
+          <select
+            value={formData.accountType}
+            onChange={(e) => setFormData({...formData, accountType: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            <option value="checking">Checking Account</option>
+            <option value="savings">Savings Account</option>
+          </select>
+        </div>
+
+        {/* Transfer Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Transfer Method
+          </label>
+          <select
+            value={formData.transferType}
+            onChange={(e) => setFormData({...formData, transferType: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            <option value="ach">ACH Transfer</option>
+            <option value="wire">Wire Transfer (+$25 fee)</option>
+          </select>
+        </div>
+
+        {/* Account Holder Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Account Holder Name
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.accountHolderName}
+            onChange={(e) => setFormData({...formData, accountHolderName: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Enter account holder name"
+          />
+        </div>
+
+        {/* Account Number */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Account Number
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.accountNumber}
+            onChange={(e) => setFormData({...formData, accountNumber: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Enter account number"
+          />
+        </div>
+
+        {/* Routing Number */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Routing Number
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.routingNumber}
+            onChange={(e) => setFormData({...formData, routingNumber: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Enter routing number"
+          />
+        </div>
+
+        {/* SWIFT Code (for wire transfers) */}
+        {formData.transferType === 'wire' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              SWIFT Code
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.swiftCode}
+              onChange={(e) => setFormData({...formData, swiftCode: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Enter SWIFT code"
+            />
+          </div>
+        )}
+
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <input
+            type="text"
+            value={formData.description}
+            onChange={(e) => setFormData({...formData, description: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Deposit description"
+          />
+        </div>
+
+        {/* Fee Notice */}
+        {formData.transferType === 'wire' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> Wire transfers incur a $25 fee
+            </p>
+          </div>
+        )}
+
+        {/* Submit Button */}
         <button
           type="submit"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           disabled={loading}
+          className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Processing...' : 'Deposit'}
+          {loading ? 'Processing...' : 'Deposit Funds'}
         </button>
       </form>
     </div>
