@@ -19,7 +19,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
     transferType: 'ach',
     accountHolderName: '',
     accountNumber: '',
-    routingNumber: '',
+    routingNumber: '091000022', // Our Minnesota routing number
     swiftCode: '',
     description: ''
   });
@@ -59,42 +59,72 @@ export default function DepositForm({ onClose }: DepositFormProps) {
       let fee = 0;
       if (formData.transferType === 'wire') {
         fee = 25; // Wire transfer fee
-        toast.success('Wire transfer fee of $25 will be applied');
       }
+
+      // Get current user profile to ensure we have the latest data
+      const { data: currentProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (profileError) throw profileError;
 
       // Update balance
       const currentBalance = formData.accountType === 'checking' 
-        ? userProfile?.checking_balance || 0 
-        : userProfile?.savings_balance || 0;
+        ? currentProfile.checking_balance || 0 
+        : currentProfile.savings_balance || 0;
       
       const newBalance = currentBalance + amount;
       const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
       
+      console.log('Updating balance:', {
+        userId: user?.id,
+        field: updateField,
+        currentBalance,
+        amount,
+        newBalance
+      });
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ [updateField]: newBalance })
         .eq('id', user?.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('Profile updated successfully');
 
       // Log transaction
+      const transactionData = {
+        user_id: user?.id,
+        amount: amount,
+        type: 'deposit',
+        description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.description || 'No description'}`,
+        account_type: formData.accountType,
+        transfer_type: formData.transferType,
+        account_holder_name: formData.accountHolderName,
+        account_number: formData.accountNumber,
+        routing_number: formData.routingNumber,
+        swift_code: formData.swiftCode,
+        fee: fee
+      };
+
+      console.log('Inserting transaction:', transactionData);
+
       const { error: transactionError } = await supabase
         .from('transactions')
-        .insert({
-          user_id: user?.id,
-          amount: amount,
-          type: 'deposit',
-          description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.description}`,
-          account_type: formData.accountType,
-          transfer_type: formData.transferType,
-          account_holder_name: formData.accountHolderName,
-          account_number: formData.accountNumber,
-          routing_number: formData.routingNumber,
-          swift_code: formData.swiftCode,
-          fee: fee
-        });
+        .insert(transactionData);
 
-      if (transactionError) throw transactionError;
+      if (transactionError) {
+        console.error('Transaction insert error:', transactionError);
+        throw transactionError;
+      }
+
+      console.log('Transaction logged successfully');
 
       toast.success('Deposit processed successfully');
       onClose();
@@ -168,10 +198,31 @@ export default function DepositForm({ onClose }: DepositFormProps) {
           </select>
         </div>
 
+        {/* Our Bank Account Details */}
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">Our Bank Account Details</h3>
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="font-medium text-blue-700">Account Name:</span> Asaba National Bank
+            </div>
+            <div>
+              <span className="font-medium text-blue-700">Account Number:</span> 1234567890
+            </div>
+            <div>
+              <span className="font-medium text-blue-700">Routing Number:</span> 091000022
+            </div>
+            {formData.transferType === 'wire' && (
+              <div>
+                <span className="font-medium text-blue-700">SWIFT Code:</span> ASABUS33
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Account Holder Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Account Holder Name
+            Your Account Holder Name
           </label>
           <input
             type="text"
@@ -179,14 +230,14 @@ export default function DepositForm({ onClose }: DepositFormProps) {
             value={formData.accountHolderName}
             onChange={(e) => setFormData({...formData, accountHolderName: e.target.value})}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Enter account holder name"
+            placeholder="Enter your account holder name"
           />
         </div>
 
         {/* Account Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Account Number
+            Your Account Number
           </label>
           <input
             type="text"
@@ -194,14 +245,14 @@ export default function DepositForm({ onClose }: DepositFormProps) {
             value={formData.accountNumber}
             onChange={(e) => setFormData({...formData, accountNumber: e.target.value})}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Enter account number"
+            placeholder="Enter your account number"
           />
         </div>
 
         {/* Routing Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Routing Number
+            Your Routing Number
           </label>
           <input
             type="text"
@@ -209,7 +260,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
             value={formData.routingNumber}
             onChange={(e) => setFormData({...formData, routingNumber: e.target.value})}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Enter routing number"
+            placeholder="Enter your routing number"
           />
         </div>
 
@@ -217,7 +268,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         {formData.transferType === 'wire' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              SWIFT Code
+              Your SWIFT Code
             </label>
             <input
               type="text"
@@ -225,7 +276,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
               value={formData.swiftCode}
               onChange={(e) => setFormData({...formData, swiftCode: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="Enter SWIFT code"
+              placeholder="Enter your SWIFT code"
             />
           </div>
         )}
