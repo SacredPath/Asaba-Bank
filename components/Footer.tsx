@@ -53,9 +53,9 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <Link href="/profile" className="text-gray-400 hover:text-blue-300 transition-colors">
-                Profile
-              </Link>
+                              <Link href="/dashboard" className="text-gray-400 hover:text-blue-300 transition-colors">
+                  Dashboard
+                </Link>
             </li>
             {/* Conditionally render Login/Register or Logout based on user status */}
             {!user && !loading && ( // Show these if no user and not loading

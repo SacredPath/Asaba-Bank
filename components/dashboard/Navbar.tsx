@@ -84,9 +84,9 @@ export default function Navbar({}: NavbarProps) {
           <Link href="/transactions" className="hover:text-blue-400 transition-colors">
             Transactions
           </Link>
-          <Link href="/profile" className="hover:text-blue-400 transition-colors">
-            Profile
-          </Link>
+                          <Link href="/dashboard" className="hover:text-blue-400 transition-colors">
+                  Dashboard
+                </Link>
 
           {/* User Status and Auth Actions */}
           {userEmail ? (
