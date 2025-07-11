@@ -2,8 +2,20 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
 
 export default function Home() {
+  const { user } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const handlePayRingClick = (e: React.MouseEvent) => {
+    if (!user) {
+      e.preventDefault();
+      setShowLoginPrompt(true);
+    }
+  };
+
   return (
     <Layout>
       <Head>
@@ -106,10 +118,18 @@ export default function Home() {
               </p>
               <Link
                 href="/pay-ring"
+                onClick={handlePayRingClick}
                 className="mt-6 inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
               >
                 Get Yours
               </Link>
+              {showLoginPrompt && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800 text-sm">
+                    Please <Link href="/auth/login" className="underline font-medium">login</Link> to your account to order a Pay Ring.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </section>

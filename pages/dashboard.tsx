@@ -19,6 +19,7 @@ import WithdrawSection from '@/components/dashboard/WithdrawSection';
 import Logo from '@/components/Logo';
 import TransactionHistory from '@/components/dashboard/TransactionHistory';
 import Bio from '@/components/dashboard/Bio';
+import RecipientManager from '@/components/dashboard/RecipientManager';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 
@@ -229,6 +230,14 @@ export default function Dashboard() {
             >
               Tickets
             </button>
+            <button
+              onClick={() => setTab('recipients')}
+              className={`px-2.5 py-1.25 rounded ${
+                tab === 'recipients' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Recipients
+            </button>
           </nav>
         </div>
 
@@ -268,6 +277,7 @@ export default function Dashboard() {
             <Bio name={bioData.full_name} userId={user.id} />
           )}
           {tab === 'tickets' && <Tickets />}
+          {tab === 'recipients' && <RecipientManager />}
         </div>
       </main>
 

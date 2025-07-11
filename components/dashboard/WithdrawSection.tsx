@@ -1,15 +1,19 @@
 // components/dashboard/WithdrawSection.tsx
-'use client'; // This directive marks the component as a Client Component.
+'use client';
 
 import { useState, useEffect } from 'react';
-// Import createBrowserClient for client-side Supabase interactions.
-// This is the correct way to initialize the Supabase client in client components
-// for Next.js App Router.
 import { useSupabase } from '@/hooks/useSupabase';
-import { useAuth } from '@/hooks/useAuth'; // Assuming useAuth is a client-side hook
-import WithdrawForm from './WithdrawForm'; // Assuming this component exists
-import NewRecipientForm from './NewRecipientForm'; // Assuming this component exists
-import toast from 'react-hot-toast'; // Assuming react-hot-toast is used for notifications
+import { useAuth } from '@/hooks/useAuth';
+import toast from 'react-hot-toast';
+
+interface Recipient {
+  id: string;
+  account_name: string;
+  account_number: string;
+  routing_number: string;
+  nickname: string;
+  bank_name: string;
+}
 
 interface WithdrawSectionProps {
   accountType: 'Checking' | 'Savings';
@@ -20,66 +24,176 @@ interface WithdrawSectionProps {
 
 export default function WithdrawSection({ accountType, balance: initialBalance, withdrawalLimit, userId }: WithdrawSectionProps) {
   const [balance, setBalance] = useState<number | null>(null);
-  const [loadingBalance, setLoadingBalance] = useState<boolean>(true);
-  const [errorBalance, setErrorBalance] = useState<string | null>(null);
-  const { user } = useAuth(); // Get user from your auth hook
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
+  const [amount, setAmount] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [withdrawalCount, setWithdrawalCount] = useState(0);
+  const [showRecipientForm, setShowRecipientForm] = useState(false);
+  const { user } = useAuth();
   const supabase = useSupabase();
 
-  // Function to fetch the user's balance
+  useEffect(() => {
+    if (user?.id) {
+      fetchBalance();
+      fetchRecipients();
+      fetchWithdrawalCount();
+    }
+  }, [user?.id]);
+
   const fetchBalance = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('checking_balance, savings_balance')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      const currentBalance = accountType === 'Checking' 
+        ? (data.checking_balance || 0) 
+        : (data.savings_balance || 0);
+      setBalance(currentBalance);
+    } catch (error: any) {
+      console.error('Error fetching balance:', error);
+      toast.error('Failed to load balance');
+    }
+  };
+
+  const fetchRecipients = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('recipients')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRecipients(data || []);
+    } catch (error: any) {
+      console.error('Error fetching recipients:', error);
+      toast.error('Failed to load recipients');
+    }
+  };
+
+  const fetchWithdrawalCount = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('withdrawal_count')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setWithdrawalCount(data.withdrawal_count || 0);
+    } catch (error: any) {
+      console.error('Error fetching withdrawal count:', error);
+    }
+  };
+
+  const handleWithdrawal = async () => {
     if (!user?.id) {
-      setErrorBalance('User not authenticated. Cannot fetch balance.');
-      setLoadingBalance(false);
+      toast.error('You must be logged in to make a withdrawal.');
       return;
     }
 
-    setLoadingBalance(true);
-    setErrorBalance(null);
+    if (!selectedRecipient) {
+      toast.error('Please select a recipient.');
+      return;
+    }
+
+    const withdrawalAmount = parseFloat(amount);
+    if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+
+    if (withdrawalAmount > (balance || 0)) {
+      toast.error('Insufficient funds for this withdrawal.');
+      return;
+    }
+
+    if (withdrawalCount >= 2) {
+      toast.error('You have reached your withdrawal limit. Please contact support for assistance.');
+      return;
+    }
+
+    setIsProcessing(true);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('profiles') // Use profiles table instead of balances
-        .select('checking_balance, savings_balance') // Select the correct balance columns
-        .eq('id', user.id) // Filter by user ID
-        .single(); // Expect a single row for the user's profile
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "No rows found"
-        throw fetchError;
+      // Get recipient details
+      const recipient = recipients.find(r => r.id === selectedRecipient);
+      if (!recipient) {
+        throw new Error('Selected recipient not found');
       }
 
-      // Use the appropriate balance based on account type
-      const balanceValue = accountType === 'Checking' 
-        ? (data?.checking_balance ?? 0)
-        : (data?.savings_balance ?? 0);
+      // Get user profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Create transaction record
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          account_type: accountType.toLowerCase(),
+          transaction_type: 'withdrawal',
+          method: 'Transfer',
+          amount: withdrawalAmount,
+          status: 'pending',
+          account_name: `${accountType} Account`,
+          bank_name: recipient.bank_name,
+          routing_number: recipient.routing_number,
+          recipient_id: selectedRecipient,
+          description: `Withdrawal to ${recipient.nickname}`
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update balance
+      const balanceField = accountType === 'Checking' ? 'checking_balance' : 'savings_balance';
+      const newBalance = (balance || 0) - withdrawalAmount;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          [balanceField]: newBalance,
+          withdrawal_count: withdrawalCount + 1
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setBalance(newBalance);
+      setWithdrawalCount(withdrawalCount + 1);
+      setAmount('');
+      setSelectedRecipient('');
       
-      setBalance(balanceValue); // Update balance state
-    } catch (err: any) {
-      console.error('Error fetching balance:', err.message);
-      setErrorBalance(`Failed to load balance: ${err.message}`);
-      toast.error(`Failed to load balance: ${err.message}`);
+      toast.success(`Withdrawal of $${withdrawalAmount.toFixed(2)} submitted successfully!`);
+      
+      if (withdrawalCount + 1 >= 2) {
+        toast.error('You have reached your withdrawal limit. Contact support for assistance.');
+      }
+      
+    } catch (error: any) {
+      console.error('Withdrawal error:', error);
+      toast.error(`Withdrawal failed: ${error.message}`);
     } finally {
-      setLoadingBalance(false);
+      setIsProcessing(false);
     }
   };
-
-  // useEffect to fetch balance when the component mounts or user changes
-  useEffect(() => {
-    fetchBalance();
-  }, [user?.id, supabase]); // Dependencies: re-run if user.id or supabase client changes
-
-  // Callback function to refresh balance after a successful withdrawal
-  const handleWithdrawSuccess = () => {
-    fetchBalance(); // Re-fetch balance to reflect the change
-    // You might also want to trigger a refresh for transaction history here if needed
-  };
-
-  if (loadingBalance) {
-    return <div className="text-center p-6">Loading balance...</div>;
-  }
-
-  if (errorBalance) {
-    return <div className="text-center p-6 text-red-600">Error: {errorBalance}</div>;
-  }
 
   if (!user?.id) {
     return <div className="text-center p-6 text-gray-600">Please log in to manage withdrawals.</div>;
@@ -87,24 +201,126 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-      <h2 className="text-2xl font-bold mb-4">Withdrawal Management</h2>
+      <h2 className="text-2xl font-bold mb-4">{accountType} Withdrawals</h2>
 
-      {/* Display Current Balance */}
-      <div className="mb-6 p-4 border rounded-lg bg-blue-50 text-blue-800">
-        <p className="text-lg font-semibold">Your Current Balance:</p>
-        <p className="text-3xl font-bold">${balance !== null ? balance.toFixed(2) : 'N/A'}</p>
+      {/* Balance Display */}
+      <div className="mb-6 p-4 border rounded-lg bg-blue-50">
+        <p className="text-lg font-semibold text-blue-800">Current Balance:</p>
+        <p className="text-3xl font-bold text-blue-900">
+          ${balance !== null ? balance.toFixed(2) : 'N/A'}
+        </p>
+        <p className="text-sm text-blue-700 mt-2">
+          Withdrawals remaining: {Math.max(0, 2 - withdrawalCount)}/2
+        </p>
       </div>
 
       {/* Withdrawal Form */}
-      <div className="mb-8">
-        <WithdrawForm userId={user.id} onWithdrawSuccess={handleWithdrawSuccess} />
+      <div className="space-y-4">
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Select Recipient *
+          </label>
+          {recipients.length === 0 ? (
+            <div className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+              <p className="text-yellow-800 text-sm">
+                No recipients found. You must add a recipient before making withdrawals.
+              </p>
+              <button
+                onClick={() => setShowRecipientForm(true)}
+                className="mt-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded text-sm"
+              >
+                Add Recipient
+              </button>
+            </div>
+          ) : (
+            <select
+              value={selectedRecipient}
+              onChange={(e) => setSelectedRecipient(e.target.value)}
+              disabled={isProcessing}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            >
+              <option value="">Select a recipient...</option>
+              {recipients.map((recipient) => (
+                <option key={recipient.id} value={recipient.id}>
+                  {recipient.nickname} - {recipient.account_name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Amount ($)
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            disabled={isProcessing}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+
+        <button
+          onClick={handleWithdrawal}
+          disabled={isProcessing || !selectedRecipient || !amount || parseFloat(amount) <= 0 || withdrawalCount >= 2}
+          className="w-full bg-red-500 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
+        >
+          {isProcessing ? 'Processing...' : 'Submit Withdrawal'}
+        </button>
+
+        {withdrawalCount >= 2 && (
+          <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+            <p className="text-red-800 text-sm">
+              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit. 
+              Please contact support for assistance with additional withdrawals.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* New Recipient Form (if applicable to withdrawal flow, otherwise remove) */}
-      {/* This component might be for transfers, not direct withdrawals, so review its relevance here. */}
-      {/* If it's for transfer recipients, you might want a separate "Transfer" section. */}
+      {/* Recipient Management */}
       <div className="mt-8">
-        <NewRecipientForm userId={user.id} onSuccess={() => toast.success('Recipient added!')} />
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Manage Recipients</h3>
+          <button
+            onClick={() => setShowRecipientForm(!showRecipientForm)}
+            className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+          >
+            {showRecipientForm ? 'Cancel' : 'Add Recipient'}
+          </button>
+        </div>
+
+        {showRecipientForm && (
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <p className="text-sm text-gray-600 mb-4">
+              Add a recipient to your list to enable withdrawals. You can only withdraw to pre-approved recipients.
+            </p>
+            {/* Recipient form would go here - you can import RecipientManager or create inline form */}
+            <p className="text-sm text-gray-500">
+              Recipient management is available in the main dashboard under the "Recipients" tab.
+            </p>
+          </div>
+        )}
+
+        {recipients.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Your Recipients:</p>
+            {recipients.map((recipient) => (
+              <div key={recipient.id} className="p-3 border rounded bg-gray-50">
+                <p className="font-medium">{recipient.nickname}</p>
+                <p className="text-sm text-gray-600">{recipient.account_name}</p>
+                <p className="text-xs text-gray-500">
+                  {recipient.bank_name} • {recipient.account_number}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
