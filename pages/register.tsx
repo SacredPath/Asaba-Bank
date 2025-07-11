@@ -1,241 +1,264 @@
+'use client';
+
 import { useState } from 'react';
-import Layout from '@/components/Layout';
-import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/hooks/useSupabase';
+import toast from 'react-hot-toast';
+import Layout from '@/components/Layout';
 import Link from 'next/link';
 
-// Password strength validation
-const validatePassword = (password: string): { isValid: boolean; message: string } => {
-  if (password.length < 8) {
-    return { isValid: false, message: 'Password must be at least 8 characters long' };
-  }
-  if (!/[A-Z]/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one uppercase letter' };
-  }
-  if (!/[a-z]/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one lowercase letter' };
-  }
-  if (!/\d/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one number' };
-  }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one special character' };
-  }
-  return { isValid: true, message: 'Password is strong' };
-};
-
-// Input sanitization
-const sanitizeInput = (input: string): string => {
-  return input.trim().replace(/[<>]/g, '');
-};
-
 export default function SetUpOnlineAccess() {
+  const router = useRouter();
   const supabase = useSupabase();
   const [mode, setMode] = useState<'create' | 'retrieve'>('create');
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [ssn, setSsn] = useState('');
-  const [dob, setDob] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [msg, setMsg] = useState('');
-  const [error, setError] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    referenceNumber: '',
+    ssn: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    phone: ''
+  });
 
-  const checkGeo = async () => {
-    try {
-      const res = await fetch('https://jykafoyljnhhemisxwse.functions.supabase.co/check-country');
-      const data = await res.json();
-      if (!data.allowed) {
-        toast.error('Blocked: Only users in the United States may register.');
-        return false;
-      }
-      return true;
-    } catch {
-      toast.error('Location check failed.');
-      return false;
-    }
-  };
-
-  const handleCreateAccess = async () => {
-    if (!referenceNumber || !ssn || !email || !password) {
-      setError('All fields are required.');
-      return;
-    }
-
-    // Validate password strength
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      setError(passwordValidation.message);
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-
-    // Validate SSN format (basic)
-    const ssnRegex = /^\d{3}-?\d{2}-?\d{4}$/;
-    if (!ssnRegex.test(ssn.replace(/\D/g, ''))) {
-      setError('Please enter a valid SSN in format XXX-XX-XXXX.');
-      return;
-    }
-
-    const geoOk = await checkGeo();
-    if (!geoOk) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      // Create user account - DO NOT store SSN in user metadata
-      const { data, error } = await supabase.auth.signUp({ 
-        email: sanitizeInput(email), 
-        password,
-        options: {
-          data: {
-            reference_number: sanitizeInput(referenceNumber),
-            // SSN should be stored securely in a separate encrypted table, not in user metadata
-          }
+      if (mode === 'create') {
+        // Create new account
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          return;
         }
-      });
 
-      if (error) {
-        setError(error.message);
-        return;
+        if (formData.password.length < 8) {
+          toast.error('Password must be at least 8 characters');
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              reference_number: formData.referenceNumber,
+              ssn: formData.ssn,
+              phone: formData.phone
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        // Create profile
+        if (data.user) {
+          await supabase.from('profiles').insert({
+            id: data.user.id,
+            full_name: formData.fullName,
+            email: formData.email,
+            phone1: formData.phone,
+            reference_number: formData.referenceNumber,
+            ssn: formData.ssn
+          });
+        }
+
+        toast.success('Account created successfully! Please check your email for verification.');
+        router.push('/auth/login');
+      } else {
+        // Retrieve existing account
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('reference_number', formData.referenceNumber)
+          .eq('ssn', formData.ssn)
+          .single();
+
+        if (error || !profiles) {
+          toast.error('No account found with these credentials');
+          return;
+        }
+
+        toast.success('Account found! Please log in with your email and password.');
+        router.push('/auth/login');
       }
-
-      setMsg('Online access created successfully! Check your email for verification.');
-      setError('');
-    } catch (err) {
-      setError('Failed to create online access. Please try again.');
-    }
-  };
-
-  const handleRetrieveAccess = async () => {
-    if (!referenceNumber || !ssn || !dob) {
-      setError('All fields are required for account retrieval.');
-      return;
-    }
-
-    const geoOk = await checkGeo();
-    if (!geoOk) return;
-
-    try {
-      // In a real implementation, you would verify the credentials
-      // and then allow the user to reset their password
-      setMsg('Account found! Please check your email for password reset instructions.');
-      setError('');
-    } catch (err) {
-      setError('Account not found or invalid credentials.');
-    }
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPassword = e.target.value;
-    setPassword(newPassword);
-    
-    if (newPassword) {
-      const validation = validatePassword(newPassword);
-      setPasswordStrength(validation.message);
-    } else {
-      setPasswordStrength('');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(mode === 'create' ? 'Failed to create account' : 'Failed to retrieve account');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Layout title="Set Up Online Access">
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-        <div className="w-full max-w-md p-6 bg-white rounded-2xl shadow-soft-lg ring-1 ring-indigo-200">
-          <h2 className="mb-6 text-3xl font-extrabold text-center text-primary">Set Up Online Access</h2>
-          
-          {/* Mode Toggle */}
-          <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setMode('create')}
-              className={`flex-1 py-2 px-4 rounded-md transition ${
-                mode === 'create' ? 'bg-white shadow-sm' : 'text-gray-600'
-              }`}
-            >
-              Create Access
-            </button>
-            <button
-              onClick={() => setMode('retrieve')}
-              className={`flex-1 py-2 px-4 rounded-md transition ${
-                mode === 'retrieve' ? 'bg-white shadow-sm' : 'text-gray-600'
-              }`}
-            >
-              Retrieve Access
-            </button>
-          </div>
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-8">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-xl p-6">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Set Up Online Access</h1>
+              <p className="text-gray-600 text-sm">Create or retrieve your Asaba Bank account</p>
+            </div>
 
-          {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-          {msg && <p className="mb-3 text-sm text-green-600">{msg}</p>}
+            {/* Mode Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+              <button
+                onClick={() => setMode('create')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
+                  mode === 'create'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Create Account
+              </button>
+              <button
+                onClick={() => setMode('retrieve')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${
+                  mode === 'retrieve'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Retrieve Account
+              </button>
+            </div>
 
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Reference Number"
-              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setReferenceNumber(sanitizeInput(e.target.value))}
-              maxLength={50}
-            />
-            <input
-              type="text"
-              placeholder="Social Security Number (SSN)"
-              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setSsn(e.target.value)}
-              maxLength={11}
-            />
-            
-            {mode === 'create' && (
-              <>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Reference Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reference Number
+                </label>
                 <input
-                  type="email"
-                  placeholder="Email Address"
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  onChange={(e) => setEmail(sanitizeInput(e.target.value))}
-                  maxLength={100}
+                  type="text"
+                  required
+                  value={formData.referenceNumber}
+                  onChange={(e) => setFormData({...formData, referenceNumber: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Enter your reference number"
                 />
-                <div>
-                  <input
-                    type="password"
-                    placeholder="Create Password"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    onChange={handlePasswordChange}
-                    minLength={8}
-                  />
-                  {passwordStrength && (
-                    <p className={`text-sm mt-1 ${
-                      passwordStrength.includes('strong') ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {passwordStrength}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
+              </div>
 
-            {mode === 'retrieve' && (
-              <input
-                type="date"
-                placeholder="Date of Birth"
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                onChange={(e) => setDob(e.target.value)}
-              />
-            )}
+              {/* SSN */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Social Security Number
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={formData.ssn}
+                  onChange={(e) => setFormData({...formData, ssn: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Enter your SSN"
+                />
+              </div>
 
-            <button
-              onClick={mode === 'create' ? handleCreateAccess : handleRetrieveAccess}
-              className="w-full py-3 font-semibold text-white rounded-lg bg-primary hover:bg-primary-dark transition"
-            >
-              {mode === 'create' ? 'Create Online Access' : 'Retrieve Access'}
-            </button>
-          </div>
+              {mode === 'create' && (
+                <>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Enter your email"
+                    />
+                  </div>
 
-          <div className="mt-6 text-center">
-            <Link href="/auth/login" className="text-primary hover:underline">
-              Already have online access? Sign in here
-            </Link>
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Create a password (min 8 characters)"
+                    />
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Confirm your password"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : mode === 'create' ? 'Create Account' : 'Retrieve Account'}
+              </button>
+            </form>
+
+            {/* Footer */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                  Sign in here
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

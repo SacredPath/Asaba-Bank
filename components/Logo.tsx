@@ -1,18 +1,30 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
-const Logo = () => {
+interface LogoProps {
+  className?: string;
+  showText?: boolean;
+}
+
+export default function Logo({ className = '', showText = true }: LogoProps) {
   return (
-    <div className="flex items-center gap-2">
-      <Image
-        src="/logo.png"
-        alt="Asaba Bank Logo"
-        width={40}
-        height={40}
-        className="object-contain"
-      />
-      <span className="text-2xl font-bold">Asaba Bank</span>
-    </div>
+    <Link href="/" className={`flex items-center space-x-2 ${className}`}>
+      <div className="relative w-12 h-8">
+        <Image
+          src="/logo.svg"
+          alt="Asaba Bank"
+          width={48}
+          height={32}
+          className="object-contain"
+          priority
+        />
+      </div>
+      {showText && (
+        <div className="flex flex-col">
+          <span className="text-xl font-bold text-indigo-600">ASABA</span>
+          <span className="text-xs text-gray-600 -mt-1">BANK</span>
+        </div>
+      )}
+    </Link>
   );
-};
-
-export default Logo;
+}
