@@ -28,7 +28,7 @@ export default function BioPage() {
     <>
       <DashboardNavbar showHome />
       <main className="max-w-4xl mx-auto mt-8 p-6">
-        <Bio name={userData.full_name} userId={user?.id || ''} />
+        <Bio user={user} />
       </main>
     </>
   );

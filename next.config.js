@@ -14,10 +14,17 @@ const nextConfig = {
   trailingSlash: false,
   webpack: (config, { isServer }) => {
     // Exclude Supabase functions from webpack build
-    config.externals = config.externals || [];
-    config.externals.push({
-      'https://deno.land/std@0.131.0/http/server.ts': 'commonjs https://deno.land/std@0.131.0/http/server.ts',
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'supabase/functions': false,
+    };
+    
+    // Ignore Supabase function files
+    config.module.rules.push({
+      test: /supabase\/functions/,
+      use: 'ignore-loader',
     });
+    
     return config;
   },
   async headers() {
