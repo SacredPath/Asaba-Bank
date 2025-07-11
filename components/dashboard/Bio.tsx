@@ -19,14 +19,16 @@ const Bio: React.FC<BioProps> = ({ name, userId }) => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('bio')
+          .select('full_name, email, phone1, phone2, address')
           .eq('id', userId || '')
           .single();
 
         if (error) {
           setError(error.message);
         } else if (data) {
-          setBio(data.bio || '');
+          // Since bio field doesn't exist, create a bio from available data
+          const bioText = `Name: ${data.full_name || 'N/A'}\nEmail: ${data.email || 'N/A'}\nPhone: ${data.phone1 || 'N/A'}\nAddress: ${data.address || 'N/A'}`;
+          setBio(bioText);
         }
       } catch (err) {
         setError('Failed to fetch bio');
