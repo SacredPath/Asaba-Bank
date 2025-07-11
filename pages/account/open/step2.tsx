@@ -64,7 +64,6 @@ export default function AccountOpeningStep2() {
         setIsSubmitting(false);
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
       setIsSubmitting(false);
     }
   };

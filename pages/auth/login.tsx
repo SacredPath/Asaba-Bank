@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useSupabase } from '@/hooks/useSupabase';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import { auditLogger } from '@/lib/audit-logger';
+
+// Simple client-side rate limiting
+let loginAttempts = 0;
+let lastAttemptTime = 0;
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
 function Login() {
   const supabase = useSupabase();
@@ -12,9 +19,47 @@ function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutTime, setLockoutTime] = useState(0);
+
+  // Check if account is locked
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastAttemptTime < LOCKOUT_DURATION && loginAttempts >= MAX_ATTEMPTS) {
+      setIsLocked(true);
+      setLockoutTime(LOCKOUT_DURATION - (now - lastAttemptTime));
+    } else if (now - lastAttemptTime >= LOCKOUT_DURATION) {
+      loginAttempts = 0;
+      setIsLocked(false);
+    }
+  }, []);
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (isLocked && lockoutTime > 0) {
+      const timer = setInterval(() => {
+        setLockoutTime(prev => {
+          if (prev <= 1000) {
+            setIsLocked(false);
+            loginAttempts = 0;
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [isLocked, lockoutTime]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    
+    if (isLocked) {
+      setErrorMsg('Account temporarily locked. Please try again later.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
 
@@ -22,313 +67,253 @@ function Login() {
       // Simulate 3-second delay for better UX
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        setErrorMsg(error.message || 'Invalid credentials');
+        loginAttempts++;
+        lastAttemptTime = Date.now();
+        
+        // Log failed login attempt
+        await auditLogger.logFailedLogin(
+          email,
+          'client-ip', // In production, get actual IP
+          navigator.userAgent
+        );
+        
+        if (loginAttempts >= MAX_ATTEMPTS) {
+          setIsLocked(true);
+          setLockoutTime(LOCKOUT_DURATION);
+          setErrorMsg('Too many failed attempts. Account locked for 15 minutes.');
+          
+          // Log account lockout
+          await auditLogger.logEvent({
+            event_type: 'account_lockout',
+            ip_address: 'client-ip',
+            user_agent: navigator.userAgent,
+            details: { email, attempts: loginAttempts },
+            severity: 'high',
+          });
+        } else {
+          setErrorMsg(error.message || 'Invalid credentials');
+        }
         setLoading(false);
         return;
       }
 
+      // Reset attempts on successful login
+      loginAttempts = 0;
+      
+      // Log successful login
+      if (data.user) {
+        await auditLogger.logLogin(
+          data.user.id,
+          'client-ip', // In production, get actual IP
+          navigator.userAgent,
+          true
+        );
+      }
+      
       // Success: redirect immediately
       router.push('/dashboard');
-    } catch (error: any) {
-      setErrorMsg(error.message || 'An unexpected error occurred');
+    } catch (error) {
+      setErrorMsg('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   }
 
+  const formatTime = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div>
-      <LoadingOverlay isVisible={loading} message="Logging In..." />
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f3f4f6',
+      padding: '1rem'
+    }}>
+      {loading && <LoadingOverlay isVisible={loading} message="Logging In..." />}
+      
       <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#000000',
-        position: 'relative',
-        backgroundImage: `url('/stars.svg')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        width: '100%',
+        maxWidth: '400px',
+        backgroundColor: '#ffffff',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+        padding: '2rem'
       }}>
         <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1.5rem',
-          paddingTop: '3rem',
-          paddingBottom: '3rem'
+          textAlign: 'center',
+          marginBottom: '2rem'
         }}>
-          <div style={{
-            maxWidth: '400px',
-            width: '100%',
-            height: '80vh',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
-            padding: '2rem',
-            borderRadius: '1rem',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '2rem'
+          <Image
+            src="/logo.png"
+            alt="Asaba Bank Logo"
+            width={120}
+            height={40}
+            style={{ margin: '0 auto 1rem' }}
+          />
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            color: '#111827',
+            margin: '0',
+            textAlign: 'center'
           }}>
+            Sign in to your account
+          </h2>
+        </div>
+        
+        {isLocked ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '1rem',
+            backgroundColor: '#fef2f2',
+            borderRadius: '0.375rem',
+            border: '1px solid #fecaca',
+            color: '#dc2626'
+          }}>
+            <p>Account temporarily locked</p>
+            <p>Time remaining: {formatTime(lockoutTime)}</p>
+          </div>
+        ) : (
+          <form onSubmit={handleLogin}>
             <div>
-              <h2 style={{
-                marginTop: '1.5rem',
-                fontSize: '1.875rem',
-                fontWeight: '800',
-                color: '#111827',
-                textAlign: 'center'
-              }}>
-                Sign in to your account
-              </h2>
-            </div>
-            <form onSubmit={handleLogin}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }} htmlFor="email">
+                Email address
+              </label>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }} htmlFor="email">
-                  Email address
-                </label>
-                <div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '0.375rem',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                      fontSize: '0.875rem',
-                      color: '#1f2937',
-                      backgroundColor: '#fff',
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                    placeholder="Enter your email"
-                  />
-                </div>
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '0.5rem'
-                }} htmlFor="password">
-                  Password
-                </label>
-                <div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '0.375rem',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                      fontSize: '0.875rem',
-                      color: '#1f2937',
-                      backgroundColor: '#fff',
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                    placeholder="Enter your password"
-                  />
-                </div>
-              </div>
-
-              {errorMsg && (
-                <div style={{
-                  color: '#ef4444',
-                  fontSize: '0.875rem',
-                  textAlign: 'center',
-                  marginTop: '0.5rem'
-                }}>
-                  {errorMsg}
-                </div>
-              )}
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{
-                  fontSize: '0.875rem'
-                }}>
-                  <a href="/auth/reset-password" style={{
-                    color: '#3b82f6',
-                    textDecoration: 'none'
-                  }}>
-                    Forgot your password?
-                  </a>
-                </div>
-                <div style={{
-                  fontSize: '0.875rem'
-                }}>
-                  <a href="/account/open/step1" style={{
-                    color: '#3b82f6',
-                    textDecoration: 'none'
-                  }}>
-                    Open a new account
-                  </a>
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
-                    border: 'none',
+                    padding: '0.5rem',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '0.375rem',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
                     fontSize: '0.875rem',
-                    fontWeight: '500',
-                    color: '#fff',
-                    backgroundColor: '#3b82f6',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
+                    color: '#1f2937',
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
                   }}
-                >
-                  Sign in
-                </button>
+                  placeholder="Enter your email"
+                  disabled={loading}
+                />
               </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* Dark Footer */}
-      <footer style={{
-        backgroundColor: '#111827',
-        padding: '2rem',
-        color: '#9ca3af',
-        fontSize: '0.875rem'
-      }}>
-        <div style={{
-          maxWidth: '400px',
-          margin: '0 auto',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            marginBottom: '1.5rem'
-          }}>
-            <p>
-              Download our mobile app
-            </p>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '1rem',
-              marginTop: '0.75rem'
-            }}>
-              <a href="https://play.google.com/store/apps/details?id=com.asababank" style={{
-                opacity: 1,
-                transition: 'opacity 0.2s'
-              }}>
-                <img
-                  src="/google-play.svg"
-                  alt="Get it on Google Play"
-                  style={{
-                    width: '160px',
-                    height: '50px'
-                  }}
-                />
-              </a>
-              <a href="https://apps.apple.com/app/asababank/id123456789" style={{
-                opacity: 1,
-                transition: 'opacity 0.2s'
-              }}>
-                <img
-                  src="/apple-store.svg"
-                  alt="Download on the App Store"
-                  style={{
-                    width: '160px',
-                    height: '50px'
-                  }}
-                />
-              </a>
-            </div>
-          </div>
-          <div style={{
-            marginTop: '2rem'
-          }}>
-            <div style={{
-              marginBottom: '1rem'
-            }}>
-              <a href="/about" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>FAQs</a>
-              <span style={{
-                margin: '0 0.5rem'
-              }}>•</span>
-              <a href="/disclosures" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>Disclosures</a>
-            </div>
-            <div style={{
-              marginBottom: '1rem'
-            }}>
-              <a href="/" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>Home</a>
-              <span style={{
-                margin: '0 0.5rem'
-              }}>•</span>
-              <a href="/mobile" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>Mobile</a>
-              <span style={{
-                margin: '0 0.5rem'
-              }}>•</span>
-              <a href="/browser-support" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>Browser Support</a>
             </div>
             <div>
-              <a href="/contact" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>Contact Us</a>
-              <span style={{
-                margin: '0 0.5rem'
-              }}>•</span>
-              <a href="/privacy" style={{
-                color: '#3b82f6',
-                textDecoration: 'none'
-              }}>Privacy Policy</a>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }} htmlFor="password">
+                Password
+              </label>
+              <div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.375rem',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                    fontSize: '0.875rem',
+                    color: '#1f2937',
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  placeholder="Enter your password"
+                  disabled={loading}
+                />
+              </div>
             </div>
-          </div>
-        </div>
-      </footer>
+
+            {errorMsg && (
+              <div style={{
+                color: '#ef4444',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                marginTop: '0.5rem'
+              }}>
+                {errorMsg}
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                fontSize: '0.875rem'
+              }}>
+                <a href="/auth/reset-password" style={{
+                  color: '#3b82f6',
+                  textDecoration: 'none'
+                }}>
+                  Forgot your password?
+                </a>
+              </div>
+              <div style={{
+                fontSize: '0.875rem'
+              }}>
+                <a href="/account/open/step1" style={{
+                  color: '#3b82f6',
+                  textDecoration: 'none'
+                }}>
+                  Open a new account
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading || isLocked}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#fff',
+                  backgroundColor: loading || isLocked ? '#9ca3af' : '#3b82f6',
+                  cursor: loading || isLocked ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                Sign in
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

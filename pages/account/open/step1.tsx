@@ -57,7 +57,6 @@ export default function AccountOpeningStep1() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    console.log('Form submission triggered');
     e.preventDefault();
     
     try {
@@ -72,7 +71,6 @@ export default function AccountOpeningStep1() {
         setIsSubmitting(false);
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
       setIsSubmitting(false);
     }
   };

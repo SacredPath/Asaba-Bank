@@ -42,25 +42,29 @@ export default function AccountOpeningStep4() {
   const router = useRouter();
 
   useEffect(() => {
-    // Retrieve data from localStorage
-    const step1Data = JSON.parse(localStorage.getItem('accountOpeningStep1Data') || '{}');
-    const step2Data = JSON.parse(localStorage.getItem('accountOpeningStep2Data') || '{}');
-    const step3Data = JSON.parse(localStorage.getItem('accountOpeningStep3Data') || '{}');
+    try {
+      // Retrieve data from localStorage
+      const step1Data = JSON.parse(localStorage.getItem('accountOpeningStep1Data') || '{}');
+      const step2Data = JSON.parse(localStorage.getItem('accountOpeningStep2Data') || '{}');
+      const step3Data = JSON.parse(localStorage.getItem('accountOpeningStep3Data') || '{}');
 
-    // Here you would typically submit all the data to your backend API
-    console.log('Submitting account opening data:', {
-      step1: step1Data,
-      step2: step2Data,
-      step3: step3Data,
-    });
+      // Combine all data
+      const accountData = {
+        step1: step1Data,
+        step2: step2Data,
+        step3: step3Data,
+      };
 
-    // Clear localStorage after successful submission
-    localStorage.removeItem('accountOpeningStep1Data');
-    localStorage.removeItem('accountOpeningStep2Data');
-    localStorage.removeItem('accountOpeningStep3Data');
+      // Clear localStorage after successful submission
+      localStorage.removeItem('accountOpeningStep1Data');
+      localStorage.removeItem('accountOpeningStep2Data');
+      localStorage.removeItem('accountOpeningStep3Data');
 
-    // Redirect to confirmation page
-    router.push('/account/open/confirmation');
+      // Navigate to confirmation page
+      router.push('/account/open/confirmation');
+    } catch (error) {
+      // setIsSubmitting(false); // This line was removed from the new_code, so it's removed here.
+    }
   }, []);
 
   return (

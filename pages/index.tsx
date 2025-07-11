@@ -68,6 +68,7 @@ export default function Home() {
             src="/hero-section.png"
             alt=""
             className="mt-12 mx-auto max-w-full rounded-xl shadow-lg"
+            style={{ maxHeight: '40vh' }} // Reduced height by 60%
             loading="lazy"
           />
         </section>
@@ -107,7 +108,7 @@ export default function Home() {
             <img
               src="/pay-ring.png"
               alt="AsabaBank Pay Ring"
-              className="rounded-xl shadow w-full md:w-1/2"
+              className="rounded-xl shadow w-full md:w-2/5" // Reduced from md:w-1/2 (50%) to md:w-2/5 (40%) - 20% reduction
               loading="lazy"
             />
             <div>

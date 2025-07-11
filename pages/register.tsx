@@ -4,6 +4,31 @@ import toast from 'react-hot-toast';
 import { useSupabase } from '@/hooks/useSupabase';
 import Link from 'next/link';
 
+// Password strength validation
+const validatePassword = (password: string): { isValid: boolean; message: string } => {
+  if (password.length < 8) {
+    return { isValid: false, message: 'Password must be at least 8 characters long' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { isValid: false, message: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { isValid: false, message: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/\d/.test(password)) {
+    return { isValid: false, message: 'Password must contain at least one number' };
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return { isValid: false, message: 'Password must contain at least one special character' };
+  }
+  return { isValid: true, message: 'Password is strong' };
+};
+
+// Input sanitization
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
+
 export default function SetUpOnlineAccess() {
   const supabase = useSupabase();
   const [mode, setMode] = useState<'create' | 'retrieve'>('create');
@@ -14,6 +39,7 @@ export default function SetUpOnlineAccess() {
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [passwordStrength, setPasswordStrength] = useState('');
 
   const checkGeo = async () => {
     try {
@@ -36,18 +62,39 @@ export default function SetUpOnlineAccess() {
       return;
     }
 
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message);
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    // Validate SSN format (basic)
+    const ssnRegex = /^\d{3}-?\d{2}-?\d{4}$/;
+    if (!ssnRegex.test(ssn.replace(/\D/g, ''))) {
+      setError('Please enter a valid SSN in format XXX-XX-XXXX.');
+      return;
+    }
+
     const geoOk = await checkGeo();
     if (!geoOk) return;
 
     try {
-      // Create user account
+      // Create user account - DO NOT store SSN in user metadata
       const { data, error } = await supabase.auth.signUp({ 
-        email, 
+        email: sanitizeInput(email), 
         password,
         options: {
           data: {
-            reference_number: referenceNumber,
-            ssn: ssn
+            reference_number: sanitizeInput(referenceNumber),
+            // SSN should be stored securely in a separate encrypted table, not in user metadata
           }
         }
       });
@@ -80,6 +127,18 @@ export default function SetUpOnlineAccess() {
       setError('');
     } catch (err) {
       setError('Account not found or invalid credentials.');
+    }
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    
+    if (newPassword) {
+      const validation = validatePassword(newPassword);
+      setPasswordStrength(validation.message);
+    } else {
+      setPasswordStrength('');
     }
   };
 
@@ -117,13 +176,15 @@ export default function SetUpOnlineAccess() {
               type="text"
               placeholder="Reference Number"
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setReferenceNumber(e.target.value)}
+              onChange={(e) => setReferenceNumber(sanitizeInput(e.target.value))}
+              maxLength={50}
             />
             <input
               type="text"
               placeholder="Social Security Number (SSN)"
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               onChange={(e) => setSsn(e.target.value)}
+              maxLength={11}
             />
             
             {mode === 'create' && (
@@ -132,14 +193,25 @@ export default function SetUpOnlineAccess() {
                   type="email"
                   placeholder="Email Address"
                   className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(sanitizeInput(e.target.value))}
+                  maxLength={100}
                 />
-                <input
-                  type="password"
-                  placeholder="Create Password"
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Create Password"
+                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={handlePasswordChange}
+                    minLength={8}
+                  />
+                  {passwordStrength && (
+                    <p className={`text-sm mt-1 ${
+                      passwordStrength.includes('strong') ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {passwordStrength}
+                    </p>
+                  )}
+                </div>
               </>
             )}
 

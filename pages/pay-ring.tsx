@@ -43,7 +43,7 @@ export default function PayRing() {
             <img
               src="/pay-ring.png"
               alt="AsabaBank Pay Ring device"
-              className="rounded-xl shadow-lg max-w-full w-80"
+              className="rounded-xl shadow-lg max-w-full w-64" // Reduced from w-80 to w-64 (20% reduction)
               loading="lazy"
             />
           </div>
