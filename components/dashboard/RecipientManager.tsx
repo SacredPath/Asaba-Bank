@@ -66,6 +66,7 @@ export default function RecipientManager() {
     }
 
     console.log('Submitting recipient form:', formData);
+    console.log('User ID:', user.id);
 
     // Validate phone number format (10 digits for US)
     const routingRegex = /^\d{9}$/;
@@ -83,31 +84,30 @@ export default function RecipientManager() {
     setIsSubmitting(true);
 
     try {
-      console.log('Inserting recipient with data:', {
+      const insertData = {
         user_id: user.id,
         account_name: formData.account_name,
         account_number: formData.account_number,
         routing_number: formData.routing_number,
         nickname: formData.nickname,
         bank_name: formData.bank_name
-      });
+      };
+
+      console.log('Inserting recipient with data:', insertData);
 
       const { data, error } = await supabase
         .from('recipients')
-        .insert({
-          user_id: user.id,
-          account_name: formData.account_name,
-          account_number: formData.account_number,
-          routing_number: formData.routing_number,
-          nickname: formData.nickname,
-          bank_name: formData.bank_name
-        })
+        .insert(insertData)
         .select();
 
       console.log('Supabase response:', { data, error });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
+      console.log('Recipient added successfully:', data);
       toast.success('Recipient added successfully!');
       setFormData({
         account_name: '',
@@ -120,6 +120,8 @@ export default function RecipientManager() {
       fetchRecipients();
     } catch (error: any) {
       console.error('Error adding recipient:', error);
+      console.error('Error message:', error.message);
+      console.error('Error details:', error.details);
       toast.error(`Failed to add recipient: ${error.message}`);
     } finally {
       setIsSubmitting(false);
