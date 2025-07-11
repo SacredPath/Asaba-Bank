@@ -61,13 +61,13 @@ export default function Footer() {
             {!user && !loading && ( // Show these if no user and not loading
               <>
                 <li>
-                  <Link href="/login" className="text-gray-400 hover:text-blue-300 transition-colors">
-                    Login
-                  </Link>
+                                  <Link href="/auth/login" className="text-gray-400 hover:text-blue-300 transition-colors">
+                  Login
+                </Link>
                 </li>
                 <li>
                   <Link href="/register" className="text-gray-400 hover:text-blue-300 transition-colors">
-                    Register
+                    Set Up Online Access
                   </Link>
                 </li>
               </>
@@ -80,13 +80,19 @@ export default function Footer() {
         <div>
           <h3 className="text-xl font-bold mb-4 text-blue-400">Contact Us</h3>
           <p className="text-gray-400 text-sm">
-            123 Bank Street, Financial District, Asaba, Nigeria
+            1234 Main Street, Minneapolis, MN 55401
           </p>
           <p className="text-gray-400 text-sm mt-2">
             Email: support@asababank.com
           </p>
           <p className="text-gray-400 text-sm mt-2">
-            Phone: +234 800 123 4567
+            Phone: (612) 555-0123
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            NMLS #: 1234567
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            Routing #: 123456789
           </p>
         </div>
       </div>

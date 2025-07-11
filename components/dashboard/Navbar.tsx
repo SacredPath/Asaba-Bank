@@ -101,12 +101,12 @@ export default function Navbar({}: NavbarProps) {
             </div>
           ) : (
             <div className="flex items-center space-x-4">
-              <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
-                Login
-              </Link>
-              <Link href="/register" className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
-                Register
-              </Link>
+                          <Link href="/auth/login" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
+              Login
+            </Link>
+                          <Link href="/register" className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
+              Set Up Online Access
+            </Link>
             </div>
           )}
         </div>

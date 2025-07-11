@@ -24,7 +24,7 @@ export default function BankingOverview() {
                   Open Account
                 </a>
               </Link>
-              <Link href="/login" legacyBehavior>
+              <Link href="/auth/login" legacyBehavior>
                 <a className="inline-block bg-white text-indigo-600 border border-indigo-600 px-8 py-4 rounded-lg hover:bg-indigo-50 transition">
                   Log In
                 </a>
@@ -164,7 +164,7 @@ export default function BankingOverview() {
                 Open an Account
               </a>
             </Link>
-            <Link href="/dashboard" legacyBehavior>
+            <Link href="/auth/login" legacyBehavior>
               <a className="inline-block bg-white text-indigo-600 border border-indigo-600 px-8 py-4 rounded-lg hover:bg-indigo-50 transition">
                 View My Accounts
               </a>

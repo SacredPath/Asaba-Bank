@@ -9,10 +9,17 @@ export default function MortgagePurchase() {
   const [downPayment, setDownPayment] = useState('');
   const [creditScore, setCreditScore] = useState('');
   const [estimatedRate, setEstimatedRate] = useState('');
+  const [monthlyPayment, setMonthlyPayment] = useState('');
+  const [totalPayment, setTotalPayment] = useState('');
+  const [totalInterest, setTotalInterest] = useState('');
 
-  const calculateEstimatedRate = () => {
-    // Simple rate calculation based on inputs
-    const baseRate = 5.5; // Base rate for demonstration
+  const calculateMortgage = () => {
+    if (!loanAmount || !downPayment || !creditScore) {
+      return;
+    }
+
+    // Calculate rate based on inputs
+    const baseRate = 5.5;
     let rateAdjustment = 0;
 
     // Adjust rate based on credit score
@@ -26,8 +33,24 @@ export default function MortgagePurchase() {
     if (downPaymentPercent >= 20) rateAdjustment -= 0.1;
     else if (downPaymentPercent < 10) rateAdjustment += 0.15;
 
-    // Set estimated rate (for demonstration purposes)
-    setEstimatedRate((baseRate + rateAdjustment).toFixed(2));
+    const finalRate = baseRate + rateAdjustment;
+    setEstimatedRate(finalRate.toFixed(2));
+
+    // Calculate monthly payment
+    const principal = parseFloat(loanAmount) - parseFloat(downPayment);
+    const monthlyRate = finalRate / 100 / 12;
+    const numberOfPayments = 30 * 12; // 30-year fixed
+
+    const monthlyPaymentAmount = principal * 
+      (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+    const totalPaymentAmount = monthlyPaymentAmount * numberOfPayments;
+    const totalInterestAmount = totalPaymentAmount - principal;
+
+    setMonthlyPayment(monthlyPaymentAmount.toFixed(2));
+    setTotalPayment(totalPaymentAmount.toFixed(2));
+    setTotalInterest(totalInterestAmount.toFixed(2));
   };
 
   return (
@@ -106,21 +129,36 @@ export default function MortgagePurchase() {
               <div className="md:col-span-2">
                 <button
                   type="button"
-                  onClick={calculateEstimatedRate}
+                  onClick={calculateMortgage}
                   className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
                 >
-                  Calculate Rate
+                  Calculate Mortgage
                 </button>
               </div>
               {estimatedRate && (
                 <div className="md:col-span-2">
                   <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-xl font-semibold text-indigo-700 mb-2">Estimated Rate</h3>
-                    <div className="text-3xl font-bold text-indigo-700">
-                      {estimatedRate}%
+                    <h3 className="text-xl font-semibold text-indigo-700 mb-2">Mortgage Calculation Results</h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <p className="text-sm text-gray-600">Interest Rate</p>
+                        <div className="text-2xl font-bold text-indigo-700">{estimatedRate}%</div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Monthly Payment</p>
+                        <div className="text-2xl font-bold text-indigo-700">${monthlyPayment}</div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Total Payment</p>
+                        <div className="text-2xl font-bold text-indigo-700">${totalPayment}</div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Total Interest</p>
+                        <div className="text-2xl font-bold text-indigo-700">${totalInterest}</div>
+                      </div>
                     </div>
-                    <p className="text-gray-600 mt-2">
-                      This is an estimated rate based on your inputs. Actual rates may vary.
+                    <p className="text-gray-600 mt-4 text-sm">
+                      This is an estimated calculation based on your inputs. Actual rates and payments may vary.
                     </p>
                   </div>
                 </div>

@@ -60,13 +60,71 @@ export default function Contact() {
             </p>
           </div>
 
-          {/* ... rest of your JSX unchanged ... */}
+          {/* Contact Information Grid */}
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            {/* Main Office */}
+            <div className="bg-indigo-50 p-6 rounded-xl">
+              <h3 className="text-xl font-semibold text-indigo-700 mb-4">Main Office</h3>
+              <div className="space-y-3 text-gray-600">
+                <p>1234 Main Street</p>
+                <p>Minneapolis, MN 55401</p>
+                <p className="font-semibold">(612) 555-0123</p>
+                <p className="text-sm">Mon-Fri: 9:00 AM - 5:00 PM</p>
+                <p className="text-sm">Sat: 9:00 AM - 1:00 PM</p>
+              </div>
+            </div>
 
+            {/* Customer Service */}
+            <div className="bg-indigo-50 p-6 rounded-xl">
+              <h3 className="text-xl font-semibold text-indigo-700 mb-4">Customer Service</h3>
+              <div className="space-y-3 text-gray-600">
+                <p className="font-semibold">(612) 555-0124</p>
+                <p className="text-sm">24/7 Support Available</p>
+                <p className="text-sm">Online Banking Support</p>
+                <p className="text-sm">Mobile App Assistance</p>
+              </div>
+            </div>
+
+            {/* Mortgage Department */}
+            <div className="bg-indigo-50 p-6 rounded-xl">
+              <h3 className="text-xl font-semibold text-indigo-700 mb-4">Mortgage Department</h3>
+              <div className="space-y-3 text-gray-600">
+                <p className="font-semibold">(612) 555-0125</p>
+                <p className="text-sm">Mon-Fri: 8:00 AM - 6:00 PM</p>
+                <p className="text-sm">NMLS #: 1234567</p>
+                <p className="text-sm">ITIN Loan Specialists</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <div className="bg-white p-6 rounded-xl shadow">
+              <h3 className="text-xl font-semibold text-indigo-700 mb-4">Banking Information</h3>
+              <div className="space-y-2 text-gray-600">
+                <p><span className="font-semibold">Routing Number:</span> 123456789</p>
+                <p><span className="font-semibold">NMLS Number:</span> 1234567</p>
+                <p><span className="font-semibold">FDIC Certificate:</span> 12345</p>
+                <p><span className="font-semibold">Email:</span> support@asababank.com</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow">
+              <h3 className="text-xl font-semibold text-indigo-700 mb-4">Quick Links</h3>
+              <div className="space-y-2">
+                <a href="/account/open" className="block text-indigo-600 hover:text-indigo-800">Open an Account</a>
+                <a href="/auth/login" className="block text-indigo-600 hover:text-indigo-800">Online Banking</a>
+                <a href="/mortgages" className="block text-indigo-600 hover:text-indigo-800">Mortgage Services</a>
+                <a href="/help" className="block text-indigo-600 hover:text-indigo-800">Help Center</a>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Form */}
           <div className="bg-white p-8 rounded-xl shadow">
             <h2 className="text-2xl font-semibold text-indigo-700 mb-8">Send Us a Message</h2>
 
             <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
-              {/* form inputs */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                 <input
@@ -78,11 +136,74 @@ export default function Contact() {
                   required
                 />
               </div>
-              {/* ... other inputs unchanged ... */}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="general">General Inquiry</option>
+                  <option value="mortgage">Mortgage Services</option>
+                  <option value="banking">Banking Services</option>
+                  <option value="support">Technical Support</option>
+                  <option value="complaints">Complaints</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows={6}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+
               <div className="md:col-span-2">
                 {submissionSuccess ? (
                   <div className="bg-green-50 p-4 rounded-lg text-green-700">
-                    Thank you for your message! We'll get back to you shortly.
+                    Thank you for your message! We'll get back to you within 24 hours.
                   </div>
                 ) : (
                   <button
@@ -96,8 +217,6 @@ export default function Contact() {
               </div>
             </form>
           </div>
-
-          {/* ... quick links section unchanged ... */}
         </div>
       </section>
     </Layout>

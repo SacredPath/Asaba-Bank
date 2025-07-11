@@ -27,7 +27,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex justify-center gap-4 flex-wrap">
               <Link
-                href="/register"
+                href="/account/open"
                 className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
               >
                 Open an Account
@@ -159,7 +159,7 @@ export default function Home() {
         <section className="bg-indigo-50 py-20 text-center">
           <h2 className="text-3xl font-bold text-indigo-800 mb-6">Ready to get started?</h2>
           <Link
-            href="/register"
+            href="/account/open"
             className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
           >
             Join AsabaBank Now

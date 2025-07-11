@@ -130,6 +130,7 @@ export default function Dashboard() {
   }
 
   if (!user) {
+    router.push('/auth/login');
     return <p className="text-center mt-10">Redirecting to login...</p>;
   }
 
