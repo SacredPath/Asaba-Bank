@@ -36,7 +36,7 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-blue-900">Checking Account</h3>
+              <h3 className="text-lg font-semibold text-blue-900">Life Green Checking</h3>
               <p className="text-sm text-blue-700">Primary Account</p>
             </div>
             <div className="text-right">
@@ -67,7 +67,7 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-green-900">Savings Account</h3>
+              <h3 className="text-lg font-semibold text-green-900">BigTree Savings</h3>
               <p className="text-sm text-green-700">High-Yield Savings</p>
             </div>
             <div className="text-right">

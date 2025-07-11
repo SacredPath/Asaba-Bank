@@ -148,8 +148,8 @@ export default function DepositForm({ onClose }: DepositFormProps) {
             onChange={(e) => setFormData({...formData, accountType: e.target.value})}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
-            <option value="checking">Checking Account</option>
-            <option value="savings">Savings Account</option>
+            <option value="checking">Life Green Checking</option>
+            <option value="savings">BigTree Savings</option>
           </select>
         </div>
 
