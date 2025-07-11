@@ -11,6 +11,11 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
+// Helper function to get first name from full name
+const getFirstName = (fullName: string): string => {
+  return fullName ? fullName.split(' ')[0] : '';
+};
+
 import AccountSummary from '@/components/dashboard/AccountSummary';
 import Support from '@/components/dashboard/Support';
 import Tickets from '@/components/dashboard/Tickets';
@@ -151,19 +156,21 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="bg-blue-700 text-white p-2.5 shadow-sm">
+      <header className="bg-blue-700 text-white p-3 shadow-sm">
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-base font-bold">
-              {getGreeting()}, {userData?.full_name || user.email} 👋
+          <div className="flex items-center gap-2">
+            <h1 className="text-xs sm:text-sm md:text-base font-bold truncate">
+              {getGreeting()}, {getFirstName(userData?.full_name || '') || user.email} 👋
             </h1>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <Logo />
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <Logo />
+            </div>
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors"
+              className="bg-red-600 hover:bg-red-700 text-white px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors"
             >
               Logout
             </button>
@@ -173,10 +180,10 @@ export default function Dashboard() {
 
       <main className="p-3.5 space-y-5 flex-1 container mx-auto">
         <div className="bg-white rounded-lg shadow p-3.5 mb-3.5">
-          <nav className="flex flex-wrap gap-1.5 mb-3.5">
+          <nav className="flex flex-wrap gap-1.5 mb-3.5 overflow-x-auto pb-2">
             <button
               onClick={() => setTab('summary')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'summary' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -184,7 +191,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('deposits')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'deposits' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -192,7 +199,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('withdrawals')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'withdrawals' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -200,7 +207,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('transactions')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'transactions' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -208,7 +215,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('support')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'support' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -216,7 +223,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('profile')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'profile' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -224,7 +231,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('tickets')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'tickets' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -232,7 +239,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setTab('recipients')}
-              className={`px-2.5 py-1.25 rounded ${
+              className={`px-3 py-2 rounded text-sm whitespace-nowrap ${
                 tab === 'recipients' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
@@ -247,7 +254,7 @@ export default function Dashboard() {
           {tab === 'deposits' && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold">Deposits</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <DepositSection
                   accountType="Checking"
                   userId={userData?.user_id || ''}

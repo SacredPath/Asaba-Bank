@@ -74,14 +74,14 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
     <div>
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">Account Summary</h1>
       </div>
 
       {/* Account Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 col-span-3 hover:shadow-lg transition-shadow duration-300 cursor-pointer group">
+      <div className="grid grid-cols-1 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300">
           <h2 className="text-lg font-semibold text-gray-600 mb-1">Account Holder</h2>
-          <p className="text-2xl font-bold text-gray-800">{accountName || 'Loading...'}</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-800">{accountName || 'Loading...'}</p>
         </div>
 
         <div
@@ -91,10 +91,10 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
           onMouseLeave={() => setShowCheckingModal(false)}
         >
           <div className="flex items-center gap-2">
-            <span className="text-green-500">🌱</span>
-            <h3 className="text-xl font-bold text-gray-700 group-hover:text-green-600 transition-colors duration-200">Life Green Checking</h3>
+            <span className="text-green-500 text-lg">🌱</span>
+            <h3 className="text-lg md:text-xl font-bold text-gray-700 group-hover:text-green-600 transition-colors duration-200">Life Green Checking</h3>
           </div>
-          <p className="text-xl font-semibold text-green-600 mt-2">
+          <p className="text-lg md:text-xl font-semibold text-green-600 mt-2">
             {new Intl.NumberFormat('en-US', {
               style: 'currency',
               currency: 'USD',
@@ -102,6 +102,7 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
               maximumFractionDigits: 2
             }).format(checkingBalance)}
           </p>
+          <p className="text-xs text-gray-500 mt-1">High-yield checking with no monthly fees</p>
         </div>
 
         <div
@@ -111,10 +112,10 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
           onMouseLeave={() => setShowSavingsModal(false)}
         >
           <div className="flex items-center gap-2">
-            <span className="text-blue-500">🌳</span>
-            <h3 className="text-xl font-bold text-gray-700 group-hover:text-blue-600 transition-colors duration-200">BigTree Savings</h3>
+            <span className="text-blue-500 text-lg">🌳</span>
+            <h3 className="text-lg md:text-xl font-bold text-gray-700 group-hover:text-blue-600 transition-colors duration-200">BigTree Savings</h3>
           </div>
-          <p className="text-xl font-semibold text-blue-600 mt-2">
+          <p className="text-lg md:text-xl font-semibold text-blue-600 mt-2">
             {new Intl.NumberFormat('en-US', {
               style: 'currency',
               currency: 'USD',
@@ -122,45 +123,56 @@ const AccountSummary: React.FC<Props> = ({ userId }) => {
               maximumFractionDigits: 2
             }).format(savingsBalance)}
           </p>
+          <p className="text-xs text-gray-500 mt-1">High-interest savings with competitive rates</p>
         </div>
 
-        {/* Modals */}
-        {showCheckingModal && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            style={{ pointerEvents: 'none' }}
-          >
-            <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4">
-              <h3 className="text-lg font-bold text-gray-800 mb-3">Life Green Checking</h3>
-              <p className="text-sm text-gray-600 mb-3">High-yield checking account with no monthly fees</p>
-              <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
-                <li>Free unlimited transactions</li>
-                <li>No minimum balance requirement</li>
-                <li>Instant mobile deposits</li>
-                <li>24/7 customer support</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {showSavingsModal && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            style={{ pointerEvents: 'none' }}
-          >
-            <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4">
-              <h3 className="text-lg font-bold text-gray-800 mb-3">BigTree Savings</h3>
-              <p className="text-sm text-gray-600 mb-3">High-interest savings account with competitive rates</p>
-              <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
-                <li>FDIC insured up to $250,000</li>
-                <li>No minimum balance requirement</li>
-                <li>Monthly interest payments</li>
-                <li>Easy transfers to checking</li>
-              </ul>
-            </div>
-          </div>
-        )}
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+            Deposit
+          </button>
+          <button className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+            Withdraw
+          </button>
+        </div>
       </div>
+
+      {/* Modals */}
+      {showCheckingModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">Life Green Checking</h3>
+            <p className="text-sm text-gray-600 mb-3">High-yield checking account with no monthly fees</p>
+            <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
+              <li>Free unlimited transactions</li>
+              <li>No minimum balance requirement</li>
+              <li>Instant mobile deposits</li>
+              <li>24/7 customer support</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {showSavingsModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">BigTree Savings</h3>
+            <p className="text-sm text-gray-600 mb-3">High-interest savings account with competitive rates</p>
+            <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
+              <li>FDIC insured up to $250,000</li>
+              <li>No minimum balance requirement</li>
+              <li>Monthly interest payments</li>
+              <li>Easy transfers to checking</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
