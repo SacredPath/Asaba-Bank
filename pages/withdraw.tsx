@@ -89,8 +89,7 @@ export default function WithdrawPage() {
       )}
 
       <WithdrawalForm
-        userId={user.id}
-        onWithdrawSuccess={fetchData}
+        onClose={fetchData}
       />
     </main>
   );

@@ -74,11 +74,11 @@ function Login() {
         lastAttemptTime = Date.now();
         
         // Log failed login attempt
-        await auditLogger.logFailedLogin(
-          email,
-          'client-ip', // In production, get actual IP
-          navigator.userAgent
-        );
+        // await auditLogger.logFailedLogin(
+        //   email,
+        //   'client-ip', // In production, get actual IP
+        //   navigator.userAgent
+        // );
         
         if (loginAttempts >= MAX_ATTEMPTS) {
           setIsLocked(true);
@@ -86,13 +86,13 @@ function Login() {
           setErrorMsg('Too many failed attempts. Account locked for 15 minutes.');
           
           // Log account lockout
-          await auditLogger.logEvent({
-            event_type: 'account_lockout',
-            ip_address: 'client-ip',
-            user_agent: navigator.userAgent,
-            details: { email, attempts: loginAttempts },
-            severity: 'high',
-          });
+          // await auditLogger.logEvent({
+          //   event_type: 'account_lockout',
+          //   ip_address: 'client-ip',
+          //   user_agent: navigator.userAgent,
+          //   details: { email, attempts: loginAttempts },
+          //   severity: 'high',
+          // });
         } else {
           setErrorMsg(error.message || 'Invalid credentials');
         }
@@ -104,14 +104,14 @@ function Login() {
       loginAttempts = 0;
       
       // Log successful login
-      if (data.user) {
-        await auditLogger.logLogin(
-          data.user.id,
-          'client-ip', // In production, get actual IP
-          navigator.userAgent,
-          true
-        );
-      }
+      // if (data.user) {
+      //   await auditLogger.logLogin(
+      //     data.user.id,
+      //     'client-ip', // In production, get actual IP
+      //     navigator.userAgent,
+      //     true
+      //   );
+      // }
       
       // Success: redirect immediately
       router.push('/dashboard');

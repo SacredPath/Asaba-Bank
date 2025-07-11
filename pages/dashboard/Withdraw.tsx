@@ -46,8 +46,7 @@ export default function Withdraw() {
       <Toaster position="top-center" />
       <h1 className="text-3xl font-bold text-indigo-900 mb-6">Withdraw Funds</h1>
       <WithdrawalForm
-        userId={user.id}
-        onWithdrawSuccess={() => {
+        onClose={() => {
           toast.success('Withdrawal request submitted');
         }}
       />

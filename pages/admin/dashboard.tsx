@@ -113,7 +113,20 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase.auth.admin.listUsers();
       if (error) throw error;
-      setUsers(data.users || []);
+      // Map Supabase users to local User type with required fields
+      const mappedUsers = (data.users || []).map((u: any) => ({
+        id: u.id,
+        email: u.email || '',
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        full_name: u.user_metadata?.full_name || '',
+        phone1: u.user_metadata?.phone1 || '',
+        checking_balance: u.user_metadata?.checking_balance || 0,
+        savings_balance: u.user_metadata?.savings_balance || 0,
+        withdrawal_count: u.user_metadata?.withdrawal_count || 0,
+        role: u.user_metadata?.role || 'user',
+      }));
+      setUsers(mappedUsers);
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
@@ -296,6 +309,27 @@ export default function AdminDashboard() {
     );
   };
 
+  // Filtering for each tab
+  const filteredUsers = users.filter(user => 
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.id?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredProfiles = profiles.filter(profile => 
+    profile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    profile.id?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredTransactions = transactions.filter(transaction => 
+    transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    transaction.id?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredRecipients = recipients.filter(recipient => 
+    recipient.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipient.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipient.id?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading || loadingData) {
     return (
       <>
@@ -369,7 +403,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData().map((user: User) => (
+                  {filteredUsers.map((user: User) => (
                     <tr key={user.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{user.full_name || 'N/A'}</div>
@@ -417,7 +451,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData().map((profile: Profile) => (
+                  {filteredProfiles.map((profile: Profile) => (
                     <tr key={profile.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{profile.full_name}</div>
@@ -467,7 +501,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData().map((transaction: Transaction) => (
+                  {filteredTransactions.map((transaction: Transaction) => (
                     <tr key={transaction.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
@@ -515,7 +549,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData().map((recipient: Recipient) => (
+                  {filteredRecipients.map((recipient: Recipient) => (
                     <tr key={recipient.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{recipient.nickname}</div>

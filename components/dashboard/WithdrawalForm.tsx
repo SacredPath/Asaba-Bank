@@ -12,191 +12,238 @@ import toast from 'react-hot-toast'; // Assuming react-hot-toast is used for not
 
 // Define the props for the WithdrawalForm component
 interface WithdrawalFormProps {
-  userId: string; // Explicitly define userId as a required string prop
-  onWithdrawSuccess: () => void; // Explicitly define onWithdrawSuccess as a required function prop
+  onClose: () => void;
 }
 
 // Destructure the props directly in the function signature
-export default function WithdrawalForm({ userId, onWithdrawSuccess }: WithdrawalFormProps) {
-  const [amount, setAmount] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Get user from your auth hook
+export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
+  const { user } = useAuth();
   const supabase = useSupabase();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    amount: '',
+    accountType: 'checking',
+    transferType: 'ach',
+    recipientId: '',
+    description: ''
+  });
+  const [recipients, setRecipients] = useState<any[]>([]);
+  const [showRecipientManager, setShowRecipientManager] = useState(false);
 
+  useEffect(() => {
+    loadRecipients();
+  }, []);
 
-  // Function to fetch the user's balance
-  const fetchBalance = async () => {
-    if (!user?.id) {
-      setError('User not authenticated. Cannot fetch balance.');
-      setLoading(false); // Use general loading for initial fetch
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
+  const loadRecipients = async () => {
     try {
-      const { data: currentBalanceData, error: fetchError } = await supabase
-        .from('balances') // Assuming your balance data is in a 'balances' table
-        .select('amount') // Select the 'amount' column
-        .eq('user_id', user.id) // Filter by the current user's ID
-        .single(); // Expect a single row for the user's balance
+      const { data, error } = await supabase
+        .from('recipients')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "No rows found"
-        throw fetchError;
-      }
-
-      setBalance(currentBalanceData?.amount ?? 0); // Update balance state, default to 0 if no data
-    } catch (err: any) {
-      console.error('Error fetching balance:', err.message);
-      setError(`Failed to load balance: ${err.message}`);
-      toast.error(`Failed to load balance: ${err.message}`);
-    } finally {
-      setLoading(false);
+      if (error) throw error;
+      setRecipients(data || []);
+    } catch (error) {
+      console.error('Error loading recipients:', error);
     }
   };
 
-  // Effect to fetch balance when the component mounts or user changes
-  useEffect(() => {
-    if (!user?.id) { // Ensure user ID is available before attempting to fetch
-      setBalance(null); // Reset balance if user is not logged in
-      setLoading(false);
-      return;
-    }
-    fetchBalance();
-  }, [user?.id, supabase]); // Dependencies: re-run if user.id or supabase client changes
-
-  const handleWithdraw = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (amount <= 0) {
-      toast.error('Please enter a positive amount to withdraw.');
-      setLoading(false);
-      return;
-    }
-    if (!userId) { // Use the prop userId here
-      toast.error('User not logged in.');
-      setLoading(false);
-      return;
-    }
-    if (balance === null || amount > balance) {
-      toast.error('Insufficient funds or balance not loaded.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // --- IMPORTANT: This is a simplified client-side transaction logic. ---
-      // For production-grade applications, especially for financial transactions,
-      // it is highly recommended to perform sensitive operations like
-      // updating balances via secure server-side functions (e.g., Supabase Functions,
-      // Next.js API Routes, or Server Actions) to enforce security rules and prevent tampering.
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        toast.error('Please enter a valid amount');
+        return;
+      }
 
-      const newBalance = balance - amount;
+      // Get current user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      const currentBalance = formData.accountType === 'checking' 
+        ? profile.checking_balance || 0 
+        : profile.savings_balance || 0;
+
+      if (amount > currentBalance) {
+        toast.error('Insufficient funds');
+        return;
+      }
+
+      // Check withdrawal limits
+      const withdrawalCount = profile.withdrawal_count || 0;
+      let fee = 0;
+      
+      if (withdrawalCount >= 2) {
+        fee = 25; // Administrative fee after second withdrawal
+        toast.error('Administrative fee of $25 applied. Please contact support for assistance.');
+      }
+
+      const totalAmount = amount + fee;
+      if (totalAmount > currentBalance) {
+        toast.error('Insufficient funds including fees');
+        return;
+      }
 
       // Update balance
+      const newBalance = currentBalance - totalAmount;
+      const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
+      
       const { error: updateError } = await supabase
-        .from('balances')
-        .upsert(
-          { user_id: userId, amount: newBalance }, // Use the prop userId here
-          { onConflict: 'user_id' }
-        );
+        .from('profiles')
+        .update({ 
+          [updateField]: newBalance,
+          withdrawal_count: withdrawalCount + 1
+        })
+        .eq('id', user?.id);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      // Record the withdrawal transaction
+      // Log transaction
       const { error: transactionError } = await supabase
-        .from('transactions') // Assuming a 'transactions' table
+        .from('transactions')
         .insert({
-          sender_user_id: userId, // Use the prop userId here
-          amount: amount,
+          user_id: user?.id,
+          amount: -amount,
           type: 'withdrawal',
-          status: 'completed',
-          // For withdrawals, receiver_account_number, bank_name, routing_number, method
-          // might be required depending on your schema. For simplicity, leaving them out
-          // or setting to defaults if not directly applicable.
-          receiver_account_number: 'N/A', // Placeholder
-          bank_name: 'N/A', // Placeholder
-          routing_number: 'N/A', // Placeholder
-          method: 'Bank Transfer', // Example method
+          description: `Withdrawal to ${formData.transferType.toUpperCase()} - ${formData.description}`,
+          account_type: formData.accountType,
+          transfer_type: formData.transferType,
+          recipient_id: formData.recipientId || null,
+          fee: fee
         });
 
-      if (transactionError) {
-        console.error('Error recording withdrawal transaction:', transactionError.message);
-        // Even if transaction recording fails, balance update might have succeeded.
-        // Consider robust rollback/compensation logic for production.
-      }
+      if (transactionError) throw transactionError;
 
-      toast.success('Withdrawal successful!');
-      setAmount(0); // Reset amount input
-      onWithdrawSuccess(); // Call the success callback passed from the parent
-
-    } catch (error: any) {
-      console.error('Withdrawal error:', error.message);
-      toast.error(`Withdrawal failed: ${error.message}`);
+      toast.success('Withdrawal processed successfully');
+      onClose();
+    } catch (error) {
+      console.error('Withdrawal error:', error);
+      toast.error('Withdrawal failed');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading && balance === null) {
-    return <div className="text-center p-6">Loading withdrawal form...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center p-6 text-red-600">Error: {error}</div>;
-  }
-
-  if (!user?.id) { // Check user from useAuth for conditional rendering
-    return <div className="text-center p-6 text-gray-600">Please log in to make a withdrawal.</div>;
-  }
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Process Withdrawal</h2>
-
-      {/* Display Current Balance */}
-      <div className="mb-6 p-4 border rounded-lg bg-blue-50 text-blue-800">
-        <p className="text-lg font-semibold">Your Current Balance:</p>
-        <p className="text-3xl font-bold">${balance !== null ? balance.toFixed(2) : 'N/A'}</p>
+    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Withdraw Funds</h2>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
-      <form onSubmit={handleWithdraw}>
-        <div className="mb-4">
-          <label htmlFor="withdrawAmount" className="block text-gray-700 text-sm font-bold mb-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Amount */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Amount
           </label>
           <input
             type="number"
-            id="withdrawAmount"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={amount}
-            onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-            min="0"
+            step="0.01"
+            min="0.01"
             required
-            disabled={loading}
+            value={formData.amount}
+            onChange={(e) => setFormData({...formData, amount: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Enter amount"
           />
         </div>
+
+        {/* Account Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            From Account
+          </label>
+          <select
+            value={formData.accountType}
+            onChange={(e) => setFormData({...formData, accountType: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            <option value="checking">Checking Account</option>
+            <option value="savings">Savings Account</option>
+          </select>
+        </div>
+
+        {/* Transfer Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Transfer Method
+          </label>
+          <select
+            value={formData.transferType}
+            onChange={(e) => setFormData({...formData, transferType: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            <option value="ach">ACH Transfer</option>
+            <option value="wire">Wire Transfer</option>
+          </select>
+        </div>
+
+        {/* Recipient Selection */}
+        {recipients.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Recipient (Optional)
+            </label>
+            <select
+              value={formData.recipientId}
+              onChange={(e) => setFormData({...formData, recipientId: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="">Select recipient</option>
+              {recipients.map((recipient) => (
+                <option key={recipient.id} value={recipient.id}>
+                  {recipient.nickname} - {recipient.bank_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <input
+            type="text"
+            value={formData.description}
+            onChange={(e) => setFormData({...formData, description: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Withdrawal description"
+          />
+        </div>
+
+        {/* Submit Button */}
         <button
           type="submit"
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           disabled={loading}
+          className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Processing...' : 'Withdraw'}
+          {loading ? 'Processing...' : 'Withdraw Funds'}
         </button>
       </form>
 
-      {/* This component might be for managing recipients for transfers,
-          not directly for simple withdrawals. Review its placement. */}
-      <div className="mt-8">
+      {/* Recipient Management Section */}
+      <div className="mt-8 pt-6 border-t border-gray-200">
         <h3 className="text-xl font-bold mb-4">Manage Recipient Accounts (for Transfers)</h3>
-        {/* Pass userId to RecipientManager if it needs it */}
-        <RecipientManager userId={userId} /> {/* Use the prop userId here */}
+        <RecipientManager />
       </div>
     </div>
   );
