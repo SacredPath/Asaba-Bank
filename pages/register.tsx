@@ -167,8 +167,8 @@ export default function SetUpOnlineAccess() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email Address
                     </label>
-                    <input
-                      type="email"
+          <input
+            type="email"
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -228,8 +228,8 @@ export default function SetUpOnlineAccess() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm Password
                     </label>
-                    <input
-                      type="password"
+          <input
+            type="password"
                       required
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
@@ -241,13 +241,13 @@ export default function SetUpOnlineAccess() {
               )}
 
               {/* Submit Button */}
-              <button
+          <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50"
-              >
+          >
                 {loading ? 'Processing...' : mode === 'create' ? 'Create Account' : 'Retrieve Account'}
-              </button>
+          </button>
             </form>
 
             {/* Footer */}
