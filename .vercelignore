@@ -1,0 +1,6 @@
+supabase/functions/
+node_modules/
+.next/
+.env.local
+.env
+*.log 

@@ -15,6 +15,14 @@ const nextConfig = {
   },
   output: 'standalone',
   trailingSlash: false,
+  webpack: (config, { isServer }) => {
+    // Exclude Supabase functions from webpack build
+    config.externals = config.externals || [];
+    config.externals.push({
+      'https://deno.land/std@0.131.0/http/server.ts': 'commonjs https://deno.land/std@0.131.0/http/server.ts',
+    });
+    return config;
+  },
   async headers() {
     return [
       {
