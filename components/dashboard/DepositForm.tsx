@@ -61,44 +61,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         fee = 25; // Wire transfer fee
       }
 
-      // Get current user profile to ensure we have the latest data
-      const { data: currentProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      // Update balance
-      const currentBalance = formData.accountType === 'checking' 
-        ? currentProfile.checking_balance || 0 
-        : currentProfile.savings_balance || 0;
-      
-      const newBalance = currentBalance + amount;
-      const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
-      
-      console.log('Updating balance:', {
-        userId: user?.id,
-        field: updateField,
-        currentBalance,
-        amount,
-        newBalance
-      });
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ [updateField]: newBalance })
-        .eq('id', user?.id);
-
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        throw updateError;
-      }
-
-      console.log('Profile updated successfully');
-
-      // Log transaction
+      // Log transaction as pending (don't update balance yet)
       const transactionData = {
         user_id: user?.id,
         amount: amount,
@@ -110,10 +73,11 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         account_number: formData.accountNumber,
         routing_number: formData.routingNumber,
         swift_code: formData.swiftCode,
-        fee: fee
+        fee: fee,
+        status: 'pending' // Mark as pending until manually confirmed
       };
 
-      console.log('Inserting transaction:', transactionData);
+      console.log('Creating pending deposit transaction:', transactionData);
 
       const { error: transactionError } = await supabase
         .from('transactions')
@@ -124,13 +88,13 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         throw transactionError;
       }
 
-      console.log('Transaction logged successfully');
+      console.log('Pending deposit transaction created successfully');
 
-      toast.success('Deposit processed successfully');
+      toast.success('Deposit request submitted. We will confirm when funds are received.');
       onClose();
     } catch (error) {
       console.error('Deposit error:', error);
-      toast.error('Deposit failed');
+      toast.error('Failed to submit deposit request');
     } finally {
       setLoading(false);
     }
@@ -139,7 +103,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Deposit Funds</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Request Deposit</h2>
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
@@ -148,6 +112,13 @@ export default function DepositForm({ onClose }: DepositFormProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+      </div>
+
+      <div className="mb-4 p-3 bg-gray-50 rounded-md">
+        <p className="text-sm text-gray-600">
+          Use the bank details below to transfer money from your external bank account to us. 
+          Your deposit will be confirmed once we receive the funds.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -200,13 +171,13 @@ export default function DepositForm({ onClose }: DepositFormProps) {
 
         {/* Our Bank Account Details */}
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h3 className="text-sm font-semibold text-blue-800 mb-2">Our Bank Account Details</h3>
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">Transfer Money TO Our Bank Account</h3>
           <div className="space-y-2 text-sm">
             <div>
               <span className="font-medium text-blue-700">Account Name:</span> Asaba National Bank
             </div>
             <div>
-              <span className="font-medium text-blue-700">Account Number:</span> 1234567890
+              <span className="font-medium text-blue-700">Account Number:</span> 601756752
             </div>
             <div>
               <span className="font-medium text-blue-700">Routing Number:</span> 091000022
@@ -217,6 +188,9 @@ export default function DepositForm({ onClose }: DepositFormProps) {
               </div>
             )}
           </div>
+          <p className="text-xs text-blue-600 mt-2">
+            Use these details to transfer money from your external bank account to us.
+          </p>
         </div>
 
         {/* Account Holder Name */}
@@ -310,7 +284,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
           disabled={loading}
           className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Processing...' : 'Deposit Funds'}
+          {loading ? 'Submitting...' : 'Submit Deposit Request'}
         </button>
       </form>
     </div>
