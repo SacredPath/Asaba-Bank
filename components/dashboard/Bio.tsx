@@ -3,9 +3,10 @@ import { useSupabase } from '@/hooks/useSupabase';
 
 interface BioProps {
   name: string;
+  userId?: string; // Add userId prop for proper querying
 }
 
-const Bio: React.FC<BioProps> = ({ name }) => {
+const Bio: React.FC<BioProps> = ({ name, userId }) => {
   const supabase = useSupabase();
   const [bio, setBio] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ const Bio: React.FC<BioProps> = ({ name }) => {
         const { data, error } = await supabase
           .from('profiles')
           .select('bio')
-          .eq('full_name', name)
+          .eq('id', userId || '')
           .single();
 
         if (error) {
@@ -34,10 +35,10 @@ const Bio: React.FC<BioProps> = ({ name }) => {
       }
     };
 
-    if (name) {
+    if (userId) {
       fetchBio();
     }
-  }, [name, supabase]);
+  }, [userId, supabase]);
 
   if (loading) return <p>Loading bio...</p>;
   if (error) return <p className="text-red-600">Error: {error}</p>;

@@ -249,7 +249,7 @@ export default function Dashboard() {
           {tab === 'transactions' && <TransactionList transactions={[]} />}
           {tab === 'support' && <Support />}
           {tab === 'profile' && bioData && user && (
-            <Bio name={bioData.full_name} />
+            <Bio name={bioData.full_name} userId={user.id} />
           )}
           {tab === 'tickets' && <Tickets />}
         </div>
