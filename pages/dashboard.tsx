@@ -111,7 +111,7 @@ export default function Dashboard() {
             <TransactionHistory userId={user.id} />
           )}
           
-          {activeTab === 'recipients' && (
+          {activeTab === 'recipients' && user && (
             <RecipientManager />
           )}
           

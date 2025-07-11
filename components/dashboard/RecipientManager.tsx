@@ -37,18 +37,30 @@ export default function RecipientManager() {
       return;
     }
     
-    if (user?.id) {
+    if (user?.id && typeof user.id === 'string' && user.id !== 'undefined' && user.id !== 'null') {
+      console.log('User authenticated, fetching recipients for:', user.id);
       fetchRecipients();
     } else if (user === null) {
       // User is not authenticated
+      console.log('User not authenticated');
+      setLoading(false);
+    } else {
+      // User is undefined or has invalid ID
+      console.log('User state:', user);
       setLoading(false);
     }
-    // If user is undefined, still loading
   }, [user?.id, user, authLoading]);
 
   const fetchRecipients = async () => {
     if (!user?.id) {
       console.log('No user ID available, skipping recipient fetch');
+      setLoading(false);
+      return;
+    }
+
+    // Additional check to ensure user ID is a valid UUID
+    if (typeof user.id !== 'string' || user.id === 'undefined' || user.id === 'null') {
+      console.log('Invalid user ID:', user.id);
       setLoading(false);
       return;
     }
