@@ -28,19 +28,14 @@ export function useAuth(): AuthHookResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("[useAuth] Setting up auth state listener...");
-    
     // Manually check the session first
     supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log("[useAuth] Initial session check:", { session, error });
       if (session) {
-        console.log("[useAuth] Found initial session, user:", session.user);
         setUser({ 
           id: session.user.id, 
           email: session.user.email ?? null // Ensure email is either string or null
         });
       } else {
-        console.log("[useAuth] No initial session found");
         setUser(null);
       }
       setLoading(false);
@@ -49,16 +44,8 @@ export function useAuth(): AuthHookResult {
     // Set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log(`[useAuth] Auth state changed: ${event}`, { session });
-        
-        // Log the current auth state for debugging
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log('[useAuth] Current session from getSession():', currentSession);
-        
         // Update the user state based on the session
-        const currentUser = session?.user || currentSession?.user;
-        console.log('[useAuth] Setting user state:', currentUser ? { id: currentUser.id, email: currentUser.email } : null);
-        
+        const currentUser = session?.user;
         setUser(currentUser ? { id: currentUser.id, email: currentUser.email ?? null } : null);
         setLoading(false);
       }
@@ -66,7 +53,6 @@ export function useAuth(): AuthHookResult {
 
     // Clean up the subscription on component unmount
     return () => {
-      console.log("[useAuth] Cleaning up auth listener");
       subscription?.unsubscribe();
     };
   }, []);

@@ -68,8 +68,36 @@ export default function RecipientManager({ userId }: RecipientManagerProps) {
 
   // Function to handle deleting a recipient
   const handleDeleteRecipient = async (recipientId: string) => {
-    // Replace confirm with a toast or modal logic
-    if (!window.confirm('Are you sure you want to delete this recipient?')) {
+    // Use toast for confirmation instead of window.confirm
+    const confirmed = await new Promise<boolean>((resolve) => {
+      toast((t) => (
+        <div className="flex items-center gap-2">
+          <span>Are you sure you want to delete this recipient?</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(true);
+              }}
+              className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(false);
+              }}
+              className="bg-gray-500 text-white px-2 py-1 rounded text-xs"
+            >
+              No
+            </button>
+          </div>
+        </div>
+      ), { duration: 5000 });
+    });
+
+    if (!confirmed) {
       return; // User cancelled the deletion
     }
 
