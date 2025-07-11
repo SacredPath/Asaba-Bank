@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useSupabase } from '@/hooks/useSupabase';
 import LoadingOverlay from '@/components/LoadingOverlay';
-import { auditLogger } from '@/lib/audit-logger';
 
 // Simple client-side rate limiting
 let loginAttempts = 0;
@@ -131,20 +130,21 @@ function Login() {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#f3f4f6',
       padding: '1rem'
     }}>
       {loading && <LoadingOverlay isVisible={loading} message="Logging In..." />}
-      
       <div style={{
         width: '100%',
         maxWidth: '400px',
         backgroundColor: '#ffffff',
         borderRadius: '0.5rem',
         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-        padding: '2rem'
+        padding: '2rem',
+        marginBottom: '2rem'
       }}>
         <div style={{
           textAlign: 'center',
@@ -314,6 +314,51 @@ function Login() {
           </form>
         )}
       </div>
+      {/* Footer */}
+      <footer style={{
+        width: '100%',
+        maxWidth: 400,
+        background: '#f9fafb',
+        borderRadius: '0.5rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        padding: '1.5rem 1rem',
+        fontSize: '0.95rem',
+        color: '#374151',
+        textAlign: 'center',
+        lineHeight: 1.6
+      }}>
+        <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>
+          NMLS number: 403503<br/>
+          Routing number: 021473030
+        </div>
+        <div style={{ marginBottom: '0.5rem' }}>
+          31-05 Broadway St<br/>
+          Astoria, NY 11106<br/>
+          1-800-908-6600
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer" aria-label="Google Play Store">
+            <img src="/google-play.svg" alt="Google Play Store" style={{ height: 36 }} />
+          </a>
+          <a href="https://www.apple.com/app-store/" target="_blank" rel="noopener noreferrer" aria-label="Apple App Store">
+            <img src="/apple-store.svg" alt="Apple App Store" style={{ height: 36 }} />
+          </a>
+        </div>
+        <nav style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem', marginBottom: '0.5rem', fontSize: '0.93rem' }}>
+          <a href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>Home</a>
+          <a href="/mobile" style={{ color: '#2563eb', textDecoration: 'none' }}>Mobile</a>
+          <a href="/browser-support" style={{ color: '#2563eb', textDecoration: 'none' }}>Browser Support</a>
+          <a href="/contact" style={{ color: '#2563eb', textDecoration: 'none' }}>Contact Us</a>
+          <a href="/privacy" style={{ color: '#2563eb', textDecoration: 'none' }}>Privacy Policy</a>
+          <a href="/dashboard/support" style={{ color: '#2563eb', textDecoration: 'none' }}>Get CoBrowsing Code</a>
+        </nav>
+        <div style={{ marginBottom: '0.5rem', fontWeight: 500, color: '#059669' }}>
+          FDIC-Insured - Backed by the full faith and credit of the U.S. Government
+        </div>
+        <div style={{ fontSize: '0.92rem', color: '#6b7280' }}>
+          &copy; 2025 All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }
