@@ -17,7 +17,7 @@ import Tickets from '@/components/dashboard/Tickets';
 import DepositSection from '@/components/dashboard/DepositSection';
 import WithdrawSection from '@/components/dashboard/WithdrawSection';
 import Logo from '@/components/Logo';
-import TransactionList from '@/components/dashboard/TransactionList';
+import TransactionHistory from '@/components/dashboard/TransactionHistory';
 import Bio from '@/components/dashboard/Bio';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -246,7 +246,7 @@ export default function Dashboard() {
             />
           )}
 
-          {tab === 'transactions' && <TransactionList transactions={[]} />}
+          {tab === 'transactions' && <TransactionHistory />}
           {tab === 'support' && <Support />}
           {tab === 'profile' && bioData && user && (
             <Bio name={bioData.full_name} userId={user.id} />

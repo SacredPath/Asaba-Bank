@@ -49,18 +49,9 @@ export default function TransactionHistory({}: TransactionHistoryProps) {
       setError(null); // Clear previous errors
 
       try {
-        // Fetch transactions where the current user is either the sender or receiver
-        const { data, error: fetchError } = await supabase
-          .from('transactions') // Query your 'transactions' table
-          .select('*') // Select all columns
-          .or(`sender_user_id.eq.${user.id},receiver_user_id.eq.${user.id}`) // Assuming a receiver_user_id column or similar
-          .order('created_at', { ascending: false }); // Order by creation date, newest first
-
-        if (fetchError) {
-          throw fetchError;
-        }
-
-        setTransactions(data || []); // Update state with fetched transactions, or an empty array if null
+        // For now, show a placeholder since transactions table doesn't exist yet
+        // TODO: Create transactions table and implement proper transaction fetching
+        setTransactions([]); // Empty array for now
       } catch (err: any) {
         console.error('Error fetching transactions:', err.message);
         setError(`Failed to load transactions: ${err.message}`);
