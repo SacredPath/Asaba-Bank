@@ -59,7 +59,13 @@ export default function RecipientManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID found');
+      toast.error('User not authenticated');
+      return;
+    }
+
+    console.log('Submitting recipient form:', formData);
 
     // Validate phone number format (10 digits for US)
     const routingRegex = /^\d{9}$/;
@@ -77,7 +83,16 @@ export default function RecipientManager() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
+      console.log('Inserting recipient with data:', {
+        user_id: user.id,
+        account_name: formData.account_name,
+        account_number: formData.account_number,
+        routing_number: formData.routing_number,
+        nickname: formData.nickname,
+        bank_name: formData.bank_name
+      });
+
+      const { data, error } = await supabase
         .from('recipients')
         .insert({
           user_id: user.id,
@@ -86,7 +101,10 @@ export default function RecipientManager() {
           routing_number: formData.routing_number,
           nickname: formData.nickname,
           bank_name: formData.bank_name
-        });
+        })
+        .select();
+
+      console.log('Supabase response:', { data, error });
 
       if (error) throw error;
 
