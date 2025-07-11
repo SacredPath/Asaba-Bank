@@ -19,12 +19,6 @@ const nextConfig = {
       'supabase/functions': false,
     };
     
-    // Ignore Supabase function files
-    config.module.rules.push({
-      test: /supabase\/functions/,
-      use: 'ignore-loader',
-    });
-    
     return config;
   },
   async headers() {
