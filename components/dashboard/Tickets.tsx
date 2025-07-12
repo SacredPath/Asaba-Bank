@@ -35,21 +35,27 @@ export default function Tickets({ user }: TicketsProps) {
   });
 
   useEffect(() => {
+    console.log('[Tickets] user:', user);
     loadTickets();
   }, [user]);
 
   const loadTickets = async () => {
     try {
+      console.log('[Tickets] Querying tickets for user_id:', user?.id);
       const { data, error } = await supabase
         .from('tickets')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Tickets] Supabase error:', error);
+        throw error;
+      }
+      console.log('[Tickets] Tickets loaded:', data);
       setTickets(data || []);
     } catch (error) {
-      console.error('Error loading tickets:', error);
+      console.error('[Tickets] Error loading tickets:', error);
       toast.error('Failed to load tickets');
     } finally {
       setLoading(false);

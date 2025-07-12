@@ -12,18 +12,10 @@ import toast from 'react-hot-toast'; // Assuming react-hot-toast is used for not
 interface Transaction {
   id: string;
   user_id: string;
-  account_type: string;
-  transaction_type: 'deposit' | 'withdrawal';
-  method: string;
+  type: string;
   amount: number;
-  status: 'pending' | 'completed' | 'failed';
-  account_name: string;
-  bank_name: string;
-  routing_number: string;
-  recipient_id?: string;
-  description: string;
+  note: string;
   created_at: string;
-  updated_at: string;
 }
 
 // Define the props for the TransactionHistory component
@@ -37,12 +29,13 @@ export default function TransactionHistory({ userId }: TransactionHistoryProps) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[TransactionHistory] userId:', userId);
     loadTransactions();
   }, [userId]);
 
   const loadTransactions = async () => {
     try {
-      console.log('Loading transactions for user:', userId);
+      console.log('[TransactionHistory] Querying transactions for user_id:', userId);
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
@@ -51,14 +44,14 @@ export default function TransactionHistory({ userId }: TransactionHistoryProps) 
         .limit(50);
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('[TransactionHistory] Supabase error:', error);
         throw error;
       }
       
-      console.log('Transactions loaded:', data);
+      console.log('[TransactionHistory] Transactions loaded:', data);
       setTransactions(data || []);
     } catch (error) {
-      console.error('Error loading transactions:', error);
+      console.error('[TransactionHistory] Error loading transactions:', error);
       toast.error('Failed to load transactions');
     } finally {
       setLoading(false);
@@ -94,8 +87,6 @@ export default function TransactionHistory({ userId }: TransactionHistoryProps) 
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -105,32 +96,20 @@ export default function TransactionHistory({ userId }: TransactionHistoryProps) 
                     {new Date(transaction.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {transaction.description || 'No description'}
+                    {transaction.note || 'No description'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      transaction.transaction_type === 'deposit' ? 'bg-green-100 text-green-800' :
-                      transaction.transaction_type === 'withdrawal' ? 'bg-red-100 text-red-800' :
+                      transaction.type === 'deposit' ? 'bg-green-100 text-green-800' :
+                      transaction.type === 'withdrawal' ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {transaction.transaction_type}
+                      {transaction.type}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
                       {transaction.amount >= 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.account_type}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {transaction.status}
                     </span>
                   </td>
                 </tr>

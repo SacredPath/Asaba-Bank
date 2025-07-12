@@ -73,15 +73,9 @@ export default function DepositForm({ onClose }: DepositFormProps) {
       // Log transaction as pending (don't update balance yet)
       const transactionData = {
         user_id: user?.id,
+        type: 'deposit',
         amount: amount,
-        transaction_type: 'deposit',
-        method: formData.transferType === 'ach' ? 'ACH' : 'Wire',
-        account_type: formData.accountType,
-        account_name: `${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} Account`,
-        bank_name: 'Asaba National Bank',
-        routing_number: '091000022',
-        description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.swiftCode || 'No description'}`,
-        status: 'pending' // Mark as pending until manually confirmed
+        note: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.swiftCode || 'No description'}`
       };
 
       console.log('Creating pending deposit transaction:', transactionData);

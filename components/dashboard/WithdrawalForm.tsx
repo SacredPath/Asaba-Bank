@@ -157,47 +157,20 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
       if (updateError) throw updateError;
 
-      // Log transaction - try with account_name first, fallback to simpler schema if needed
-      let transactionData = {
+      // Log transaction - match the actual database schema
+      const transactionData = {
         user_id: user?.id,
+        type: 'withdrawal',
         amount: -amount,
-        transaction_type: 'withdrawal',
-        method: formData.transferType === 'ach' ? 'ACH' : 'Wire',
-        account_type: formData.accountType,
-        account_name: `${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} Account`,
-        bank_name: selectedRecipient?.bank_name || '',
-        routing_number: selectedRecipient?.routing_number || '',
-        recipient_id: formData.recipientId,
-        description: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`,
-        status: 'completed'
+        note: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`
       };
 
-      let { error: transactionError } = await supabase
+      const { error: transactionError } = await supabase
         .from('transactions')
         .insert(transactionData);
 
-      // If account_name field doesn't exist, try without it
-      if (transactionError && transactionError.message.includes('account_name')) {
-        console.log('account_name field not found, trying without it');
-        transactionData = {
-          user_id: user?.id,
-          amount: -amount,
-          transaction_type: 'withdrawal',
-          method: formData.transferType === 'ach' ? 'ACH' : 'Wire',
-          account_type: formData.accountType,
-          bank_name: selectedRecipient?.bank_name || '',
-          routing_number: selectedRecipient?.routing_number || '',
-          recipient_id: formData.recipientId,
-          description: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`,
-          status: 'completed'
-        };
-
-        const { error: retryError } = await supabase
-          .from('transactions')
-          .insert(transactionData);
-        
-        if (retryError) throw retryError;
-      } else if (transactionError) {
+      if (transactionError) {
+        console.error('Transaction insert error:', transactionError);
         throw transactionError;
       }
 
