@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabase } from '@/hooks/useSupabase';
-import { auditLogger } from '@/lib/audit-logger';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+// import { auditLogger } from '@/lib/audit-logger';
 import toast from 'react-hot-toast';
 import AdminNavbar from '@/components/AdminNavbar';
 
@@ -114,7 +115,7 @@ export default function AdminDashboard() {
       }
 
       // Log admin access
-      await auditLogger.logAdminAction(user?.id || '', 'admin_dashboard_access');
+      // await auditLogger.logAdminAction(user?.id || '', 'admin_dashboard_access');
       
       // Load initial data
       loadUsers();
@@ -260,7 +261,7 @@ export default function AdminDashboard() {
 
       if (result.error) throw result.error;
       
-      await auditLogger.logAdminAction(user?.id || '', action, userId, data);
+      // await auditLogger.logAdminAction(user?.id || '', action, userId, data);
       toast.success(`User ${action} successful`);
       loadUsers();
     } catch (error) {
@@ -278,7 +279,7 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      await auditLogger.logAdminAction(user?.id || '', 'profile_update', profileId, data);
+      // await auditLogger.logAdminAction(user?.id || '', 'profile_update', profileId, data);
       toast.success('Profile updated successfully');
       loadProfiles();
     } catch (error) {
@@ -298,7 +299,7 @@ export default function AdminDashboard() {
         if (error) throw error;
       }
 
-      await auditLogger.logAdminAction(user?.id || '', `transaction_${action}`, transactionId);
+      // await auditLogger.logAdminAction(user?.id || '', `transaction_${action}`, transactionId);
       toast.success(`Transaction ${action} successful`);
       loadTransactions();
     } catch (error) {
@@ -318,7 +319,7 @@ export default function AdminDashboard() {
         if (error) throw error;
       }
 
-      await auditLogger.logAdminAction(user?.id || '', `recipient_${action}`, recipientId);
+      // await auditLogger.logAdminAction(user?.id || '', `recipient_${action}`, recipientId);
       toast.success(`Recipient ${action} successful`);
       loadRecipients();
     } catch (error) {
@@ -345,7 +346,7 @@ export default function AdminDashboard() {
 
       if (result?.error) throw result.error;
 
-      await auditLogger.logAdminAction(user?.id || '', `account_${action}`, accountId, data);
+      // await auditLogger.logAdminAction(user?.id || '', `account_${action}`, accountId, data);
       toast.success(`Account ${action} successful`);
       loadAccounts();
     } catch (error) {

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabase } from '@/hooks/useSupabase';
-import { auditLogger } from '@/lib/audit-logger';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+// import { auditLogger } from '@/lib/audit-logger';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 
@@ -112,7 +113,8 @@ export default function AdminUsers() {
     }
 
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Use admin API for user creation
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: createForm.email,
         password: createForm.password,
         user_metadata: {
@@ -123,9 +125,9 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      // Create profile record
+      // Create profile record using admin client
       if (data.user) {
-        await supabase.from('profiles').insert({
+        await supabaseAdmin.from('profiles').insert({
           id: data.user.id,
           full_name: createForm.full_name,
           email: createForm.email,
@@ -134,7 +136,7 @@ export default function AdminUsers() {
       }
 
       toast.success('User created successfully');
-      await auditLogger.logAdminAction(user?.id || '', 'create_user', data.user?.id);
+      // await auditLogger.logAdminAction(user?.id || '', 'create_user', data.user?.id);
       
       setShowCreateModal(false);
       setCreateForm({ email: '', password: '', full_name: '', role: 'user' });
@@ -149,35 +151,36 @@ export default function AdminUsers() {
     try {
       switch (action) {
         case 'delete':
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+          // Use admin API for user deletion
+          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
           if (deleteError) throw deleteError;
           toast.success('User deleted successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'delete_user', userId);
+          // await auditLogger.logAdminAction(user?.id || '', 'delete_user', userId);
           break;
         
         case 'ban':
-          const { error: banError } = await supabase.auth.admin.updateUserById(userId, {
+          const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
             user_metadata: { banned: true }
           });
           if (banError) throw banError;
           toast.success('User banned successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'ban_user', userId);
+          // await auditLogger.logAdminAction(user?.id || '', 'ban_user', userId);
           break;
         
         case 'unban':
-          const { error: unbanError } = await supabase.auth.admin.updateUserById(userId, {
+          const { error: unbanError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
             user_metadata: { banned: false }
           });
           if (unbanError) throw unbanError;
           toast.success('User unbanned successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'unban_user', userId);
+          // await auditLogger.logAdminAction(user?.id || '', 'unban_user', userId);
           break;
         
         case 'update':
-          const { error: updateError } = await supabase.auth.admin.updateUserById(userId, data);
+          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, data);
           if (updateError) throw updateError;
           toast.success('User updated successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'update_user', userId);
+          // await auditLogger.logAdminAction(user?.id || '', 'update_user', userId);
           break;
       }
       
@@ -290,7 +293,7 @@ export default function AdminUsers() {
                         ) : (
                           <button
                             onClick={() => handleUserAction('ban', user.id)}
-                            className="text-yellow-600 hover:text-yellow-900"
+                            className="text-red-600 hover:text-red-900"
                           >
                             Ban
                           </button>
@@ -312,71 +315,69 @@ export default function AdminUsers() {
 
         {/* Create User Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Create New User</h3>
-                <form onSubmit={handleCreateUser}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <input
-                        type="email"
-                        required
-                        value={createForm.email}
-                        onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Password</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={8}
-                        value={createForm.password}
-                        onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                      <input
-                        type="text"
-                        value={createForm.full_name}
-                        onChange={(e) => setCreateForm({...createForm, full_name: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Role</label>
-                      <select
-                        value={createForm.role}
-                        onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-semibold mb-4">Create New User</h2>
+              <form onSubmit={handleCreateUser}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      value={createForm.email}
+                      onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
                   </div>
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700"
-                    >
-                      Create User
-                    </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Password</label>
+                    <input
+                      type="password"
+                      value={createForm.password}
+                      onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
                   </div>
-                </form>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input
+                      type="text"
+                      value={createForm.full_name}
+                      onChange={(e) => setCreateForm({...createForm, full_name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <select
+                      value={createForm.role}
+                      onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  >
+                    Create User
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

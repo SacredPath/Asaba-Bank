@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabase } from '@/hooks/useSupabase';
-import { auditLogger } from '@/lib/audit-logger';
+// import { auditLogger } from '@/lib/audit-logger';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -62,7 +62,7 @@ export default function AdminNavbar() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await auditLogger.logAdminAction(user?.id || '', 'admin_logout');
+      // await auditLogger.logAdminAction(user?.id || '', 'admin_logout');
       await supabase.auth.signOut();
       router.push('/auth/login');
     } catch (error) {

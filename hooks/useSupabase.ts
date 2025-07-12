@@ -1,17 +1,10 @@
 // hooks/useSupabase.ts
-'use client'; // This directive marks the hook as a client-side hook.
+'use client';
 
-import { createBrowserClient } from '@supabase/ssr'; // Correct import for client-side Supabase client
+import supabase from '@/lib/supabase/client';
 
 // This hook provides a Supabase client instance configured for client-side operations.
-// It's useful for components that need direct Supabase interaction.
+// It uses a singleton pattern to prevent multiple GoTrueClient instances.
 export function useSupabase() {
-  // Initialize the Supabase client using environment variables.
-  // createBrowserClient automatically handles session management via browser cookies.
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  return supabase; // Return the initialized Supabase client
+  return supabase;
 }
