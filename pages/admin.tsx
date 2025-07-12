@@ -31,7 +31,7 @@ export default function AdminPage() {
       if (!user) {
         // If no user, redirect to login
         toast.error('You must be logged in to access the admin page.');
-        router.push('/login');
+        router.push('/auth/login');
       } else {
         // Optional: Check user role if you have a roles system in your database
         // For example, fetch user profile and check role

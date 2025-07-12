@@ -64,7 +64,7 @@ export default function Navbar({}: NavbarProps) {
       toast.error('Logout failed.');
     } else {
       setUserEmail(null); // Clear user email on successful logout
-      router.push('/login'); // Redirect to login page after logout
+      router.push('/auth/login'); // Redirect to login page after logout
     }
   };
 

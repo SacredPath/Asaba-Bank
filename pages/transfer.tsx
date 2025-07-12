@@ -30,7 +30,7 @@ export default function TransferPage() {
     const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
     if (sessionError || !sessionData.user) {
       setError('You must be logged in.');
-      return router.push('/login');
+      return router.push('/auth/login');
     }
 
     const sender = sessionData.user;
