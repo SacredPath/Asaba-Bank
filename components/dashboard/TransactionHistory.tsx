@@ -35,7 +35,9 @@ export default function TransactionHistory({ userId }: TransactionHistoryProps) 
 
   const loadTransactions = async () => {
     try {
+      console.log('[TransactionHistory] userId:', userId);
       console.log('[TransactionHistory] Querying transactions for user_id:', userId);
+      
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
@@ -49,6 +51,7 @@ export default function TransactionHistory({ userId }: TransactionHistoryProps) 
       }
       
       console.log('[TransactionHistory] Transactions loaded:', data);
+      console.log('[TransactionHistory] Number of transactions:', data?.length || 0);
       setTransactions(data || []);
     } catch (error) {
       console.error('[TransactionHistory] Error loading transactions:', error);

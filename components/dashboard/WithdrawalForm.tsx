@@ -177,14 +177,18 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         note: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`
       };
 
+      console.log('[WithdrawalForm] Creating transaction:', transactionData);
+
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert(transactionData);
 
       if (transactionError) {
-        console.error('Transaction insert error:', transactionError);
+        console.error('[WithdrawalForm] Transaction insert error:', transactionError);
         throw transactionError;
       }
+
+      console.log('[WithdrawalForm] Transaction created successfully');
 
       setVerifying(false);
       toast.success(`Withdrawal to ${recipientName} processed successfully`);
