@@ -129,8 +129,11 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
       return;
     }
 
-    if (withdrawalCount >= 2) {
-      toast.error('You have reached your withdrawal limit. Please contact support for assistance.');
+    // Block withdrawals after third withdrawal
+    if (withdrawalCount >= 3) {
+      toast.error('You have reached your withdrawal limit. You cannot make any more withdrawals. Please contact support for assistance.', {
+        duration: 8000,
+      });
       return;
     }
 
@@ -192,8 +195,11 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
       
       toast.success(`Withdrawal of $${withdrawalAmount.toFixed(2)} submitted successfully!`);
       
+      // Show support contact message after second withdrawal
       if (withdrawalCount + 1 >= 2) {
-        toast.error('You have reached your withdrawal limit. Contact support for assistance.');
+        toast.error('For additional withdrawals, please contact our support team at support@asababank.com or call 1-800-ASABA-BANK.', {
+          duration: 8000,
+        });
       }
       
     } catch (error: any) {
@@ -217,9 +223,6 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
         <p className="text-lg font-semibold text-blue-800">Current Balance:</p>
         <p className="text-3xl font-bold text-blue-900">
           ${balance !== null ? balance.toFixed(2) : 'N/A'}
-        </p>
-        <p className="text-sm text-blue-700 mt-2">
-          Withdrawals remaining: {Math.max(0, 2 - withdrawalCount)}/2
         </p>
       </div>
 
@@ -276,20 +279,20 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
 
         <button
           onClick={handleWithdrawal}
-          disabled={isProcessing || !selectedRecipient || !amount || parseFloat(amount) <= 0 || withdrawalCount >= 2}
+          disabled={isProcessing || !selectedRecipient || !amount || parseFloat(amount) <= 0 || withdrawalCount >= 3}
           className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           {isProcessing ? 'Processing...' : 'Submit Withdrawal'}
         </button>
 
-        {withdrawalCount >= 2 && (
+        {withdrawalCount >= 3 && (
           <div className="p-4 border border-red-200 rounded-lg bg-red-50">
             <p className="text-red-800 text-sm">
-              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit. 
-              Please contact support for assistance with additional withdrawals.
+              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit and cannot make any more withdrawals. Please contact support for assistance.
             </p>
           </div>
         )}
+
       </div>
 
       {/* Recipient Management */}

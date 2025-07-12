@@ -21,6 +21,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
   const supabase = useSupabase();
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const [formData, setFormData] = useState({
     amount: '',
     accountType: 'checking',
@@ -41,6 +42,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
     // Only proceed if we have a valid user ID (not undefined, null, or empty string)
     if (user?.id && typeof user.id === 'string' && user.id !== 'undefined' && user.id !== 'null' && user.id.trim() !== '') {
       loadRecipients();
+      loadProfile();
     } else if (user === null) {
       // User is not authenticated
       setRecipientsLoading(false);
@@ -56,6 +58,23 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       loadRecipients();
     }
   }, [user?.id, authLoading, recipients.length]);
+
+  const loadProfile = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
 
   const loadRecipients = async () => {
     if (!user?.id) {
@@ -128,22 +147,18 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         return;
       }
 
-      // Check withdrawal limits
+      // Check withdrawal count for support contact requirement
       const withdrawalCount = profile.withdrawal_count || 0;
-      let fee = 0;
       
-      if (withdrawalCount >= 2) {
-        fee = 25; // Administrative fee after second withdrawal
-        toast.error('Administrative fee of $25 applied. Please contact support for assistance.');
-      }
-
-      const totalAmount = amount + fee;
-      if (totalAmount > currentBalance) {
-        toast.error('Insufficient funds including fees');
+      // Block withdrawals after third withdrawal
+      if (withdrawalCount >= 3) {
+        toast.error('You have reached your withdrawal limit. You cannot make any more withdrawals. Please contact support for assistance.', {
+          duration: 8000,
+        });
         setLoading(false);
         return;
       }
-
+      
       // Get recipient details for better transaction description
       const selectedRecipient = recipients.find(r => r.id === formData.recipientId);
       console.log('[WithdrawalForm] formData.recipientId:', formData.recipientId);
@@ -160,7 +175,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Update balance
-      const newBalance = currentBalance - totalAmount;
+      const newBalance = currentBalance - amount;
       const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
       
       const { error: updateError } = await supabase
@@ -196,13 +211,20 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
       setVerifying(false);
       toast.success(`Withdrawal to ${recipientName} processed successfully`);
+      
+      // Show support contact message after second withdrawal
+      if (withdrawalCount + 1 >= 2) {
+        toast.error('For additional withdrawals, please contact our support team at support@asababank.com or call 1-800-ASABA-BANK.', {
+          duration: 8000,
+        });
+      }
+      
       onClose();
-    } catch (error) {
-      console.error('Withdrawal error:', error);
-      toast.error('Withdrawal failed');
+    } catch (error: any) {
+      console.error('[WithdrawalForm] Error:', error);
       setVerifying(false);
-    } finally {
       setLoading(false);
+      toast.error(`Withdrawal failed: ${error.message}`);
     }
   };
 
@@ -324,6 +346,15 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         >
           {verifying ? 'Verifying...' : loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
         </button>
+
+        {/* Withdrawal Limit Warning */}
+        {profile?.withdrawal_count >= 3 && (
+          <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+            <p className="text-red-800 text-sm">
+              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit and cannot make any more withdrawals. Please contact support for assistance.
+            </p>
+          </div>
+        )}
       </form>
 
       {/* Recipient Management Section */}

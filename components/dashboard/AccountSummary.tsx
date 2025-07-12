@@ -56,11 +56,20 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
             </button>
             <button
               onClick={() => setShowWithdrawForm(true)}
-              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium"
+              disabled={profile?.withdrawal_count >= 3}
+              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Withdraw
+              {profile?.withdrawal_count >= 3 ? 'Limit Reached' : 'Withdraw'}
             </button>
           </div>
+          
+          {profile?.withdrawal_count >= 3 && (
+            <div className="mt-2 p-2 border border-red-200 rounded bg-red-50">
+              <p className="text-red-800 text-xs">
+                Withdrawal limit reached. Contact support for assistance.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Savings Account */}
@@ -87,11 +96,20 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
             </button>
             <button
               onClick={() => setShowWithdrawForm(true)}
-              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium"
+              disabled={profile?.withdrawal_count >= 3}
+              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Withdraw
+              {profile?.withdrawal_count >= 3 ? 'Limit Reached' : 'Withdraw'}
             </button>
           </div>
+          
+          {profile?.withdrawal_count >= 3 && (
+            <div className="mt-2 p-2 border border-red-200 rounded bg-red-50">
+              <p className="text-red-800 text-xs">
+                Withdrawal limit reached. Contact support for assistance.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

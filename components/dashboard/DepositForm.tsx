@@ -171,11 +171,11 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         </div>
 
         {/* Our Bank Account Details */}
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
           <h3 className="text-sm font-semibold text-blue-800 mb-2">Transfer Money TO Our Bank Account</h3>
           <div className="space-y-2 text-sm">
             <div>
-              <span className="font-medium text-blue-700">Account Name:</span> Asaba National Bank
+              <span className="font-medium text-blue-700">Account Name:</span> {userProfile?.full_name || 'Loading...'}
             </div>
             <div>
               <span className="font-medium text-blue-700">Account Number:</span> 601756752

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabase } from '@/hooks/useSupabase';
@@ -13,6 +13,29 @@ export default function AdminNavbar() {
   const { user } = useAuth();
   const supabase = useSupabase();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [adminName, setAdminName] = useState<string>('');
+
+  useEffect(() => {
+    if (user?.id) {
+      loadAdminProfile();
+    }
+  }, [user?.id]);
+
+  const loadAdminProfile = async () => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+      setAdminName(profile?.full_name || user?.email?.split('@')[0] || 'Admin');
+    } catch (error) {
+      console.error('Error loading admin profile:', error);
+      setAdminName(user?.email?.split('@')[0] || 'Admin');
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -58,7 +81,7 @@ export default function AdminNavbar() {
           
           <div className="flex items-center space-x-4">
             <span className="text-sm">
-              Admin: {user?.email}
+              {adminName}
             </span>
             <button
               onClick={handleLogout}

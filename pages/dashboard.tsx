@@ -86,7 +86,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <Greeting name={user?.email?.split('@')[0] || 'User'} />
+        <Greeting name={profile?.full_name || user?.email?.split('@')[0] || 'User'} />
         
         {/* Navigation Tabs */}
         <div className="border-b border-gray-200 mb-6">
