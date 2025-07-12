@@ -33,11 +33,24 @@ export default function Dashboard() {
   }, [user, loading, router]);
 
   const loadProfile = async () => {
+    if (!user?.id) {
+      console.log('No user ID available, skipping profile load');
+      setLoadingProfile(false);
+      return;
+    }
+
+    // Additional check to ensure user ID is a valid UUID
+    if (typeof user.id !== 'string' || user.id === 'undefined' || user.id === 'null' || user.id.trim() === '') {
+      console.log('Invalid user ID:', user.id);
+      setLoadingProfile(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
 
       if (error) throw error;
