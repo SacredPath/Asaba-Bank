@@ -69,10 +69,9 @@ export default function AdminDashboard() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<any>({});
 
-  // Check admin access
+  // Immediate redirect for non-admin users
   useEffect(() => {
     if (!loading && !user) {
-      toast.error('Authentication required');
       router.push('/auth/login');
       return;
     }
@@ -92,7 +91,7 @@ export default function AdminDashboard() {
 
       if (error || profile?.role !== 'admin') {
         toast.error('Admin access required');
-        router.push('/dashboard');
+        router.push('/auth/login');
         return;
       }
 
@@ -104,27 +103,33 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Admin access check failed:', error);
       toast.error('Access denied');
-      router.push('/dashboard');
+      router.push('/auth/login');
     }
   };
 
   const loadUsers = async () => {
     setLoadingData(true);
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
+      // Use profiles table instead of admin API since we don't have service role key
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      // Map Supabase users to local User type with required fields
-      const mappedUsers = (data.users || []).map((u: any) => ({
-        id: u.id,
-        email: u.email || '',
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
-        full_name: u.user_metadata?.full_name || '',
-        phone1: u.user_metadata?.phone1 || '',
-        checking_balance: u.user_metadata?.checking_balance || 0,
-        savings_balance: u.user_metadata?.savings_balance || 0,
-        withdrawal_count: u.user_metadata?.withdrawal_count || 0,
-        role: u.user_metadata?.role || 'user',
+      
+      // Map profiles to User type
+      const mappedUsers = (data || []).map((profile: any) => ({
+        id: profile.id,
+        email: profile.email || '',
+        created_at: profile.created_at,
+        last_sign_in_at: profile.last_sign_in_at,
+        full_name: profile.full_name || '',
+        phone1: profile.phone1 || '',
+        checking_balance: profile.checking_balance || 0,
+        savings_balance: profile.savings_balance || 0,
+        withdrawal_count: profile.withdrawal_count || 0,
+        role: profile.role || 'user',
       }));
       setUsers(mappedUsers);
     } catch (error) {

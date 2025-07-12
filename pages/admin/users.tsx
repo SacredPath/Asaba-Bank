@@ -23,22 +23,16 @@ export default function AdminUsers() {
   const { user, loading } = useAuth();
   const supabase = useSupabase();
   
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'user'
-  });
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState<any>({});
 
-  // Check admin access
+  // Immediate redirect for non-admin users
   useEffect(() => {
     if (!loading && !user) {
-      toast.error('Authentication required');
       router.push('/auth/login');
       return;
     }
@@ -58,25 +52,44 @@ export default function AdminUsers() {
 
       if (error || profile?.role !== 'admin') {
         toast.error('Admin access required');
-        router.push('/dashboard');
+        router.push('/auth/login');
         return;
       }
 
-      await auditLogger.logAdminAction(user?.id || '', 'admin_users_access');
+      // Load users data
       loadUsers();
     } catch (error) {
       console.error('Admin access check failed:', error);
       toast.error('Access denied');
-      router.push('/dashboard');
+      router.push('/auth/login');
     }
   };
 
   const loadUsers = async () => {
     setLoadingData(true);
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
+      // Use profiles table instead of admin API
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      setUsers(data.users || []);
+      
+      // Map profiles to User type
+      const mappedUsers = (data || []).map((profile: any) => ({
+        id: profile.id,
+        email: profile.email || '',
+        created_at: profile.created_at,
+        last_sign_in_at: profile.last_sign_in_at,
+        full_name: profile.full_name || '',
+        phone1: profile.phone1 || '',
+        checking_balance: profile.checking_balance || 0,
+        savings_balance: profile.savings_balance || 0,
+        withdrawal_count: profile.withdrawal_count || 0,
+        role: profile.role || 'user',
+      }));
+      setUsers(mappedUsers);
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');

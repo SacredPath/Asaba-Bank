@@ -1,15 +1,12 @@
 // lib/audit-logger.ts
-import { createClient } from '@supabase/supabase-js';
+import supabase from '@/lib/supabase/client';
 
 class AuditLogger {
   private supabase: any;
 
   constructor() {
-    // Initialize with Supabase client
-    this.supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    // Use the existing Supabase client instance
+    this.supabase = supabase;
   }
 
   setSupabase(supabase: any) {
