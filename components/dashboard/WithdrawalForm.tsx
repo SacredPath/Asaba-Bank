@@ -178,7 +178,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         user_id: user?.id,
         type: 'withdrawal',
         amount: amount, // Store positive amount, handle negative display in UI
-        note: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`
+        note: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} from ${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} - ${formData.description}`
       };
 
       console.log('[WithdrawalForm] Creating transaction:', transactionData);

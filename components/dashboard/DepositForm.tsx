@@ -75,7 +75,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         user_id: user?.id,
         type: 'deposit',
         amount: amount,
-        note: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.swiftCode || 'No description'}`
+        note: `Deposit via ${formData.transferType.toUpperCase()} to ${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} - ${formData.swiftCode || 'No description'}`
       };
 
       console.log('Creating pending deposit transaction:', transactionData);
