@@ -20,6 +20,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
   const { user, loading: authLoading } = useAuth();
   const supabase = useSupabase();
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [formData, setFormData] = useState({
     amount: '',
     accountType: 'checking',
@@ -92,21 +93,23 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setVerifying(false);
 
     try {
       const amount = parseFloat(formData.amount);
       if (isNaN(amount) || amount <= 0) {
         toast.error('Please enter a valid amount');
+        setLoading(false);
         return;
       }
 
-      // Validate recipient selection
       if (!formData.recipientId) {
-        toast.error('Please select a recipient to withdraw to');
+        toast.error('Please select a recipient');
+        setLoading(false);
         return;
       }
 
-      // Get current user profile
+      // Get user profile for balance check
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -121,6 +124,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
       if (amount > currentBalance) {
         toast.error('Insufficient funds');
+        setLoading(false);
         return;
       }
 
@@ -136,12 +140,20 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       const totalAmount = amount + fee;
       if (totalAmount > currentBalance) {
         toast.error('Insufficient funds including fees');
+        setLoading(false);
         return;
       }
 
       // Get recipient details for better transaction description
       const selectedRecipient = recipients.find(r => r.id === formData.recipientId);
       const recipientName = selectedRecipient ? selectedRecipient.nickname : 'Unknown Recipient';
+
+      // Start verification process
+      setVerifying(true);
+      setLoading(false);
+
+      // Simulate 2-second verification delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Update balance
       const newBalance = currentBalance - totalAmount;
@@ -174,11 +186,13 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         throw transactionError;
       }
 
+      setVerifying(false);
       toast.success(`Withdrawal to ${recipientName} processed successfully`);
       onClose();
     } catch (error) {
       console.error('Withdrawal error:', error);
       toast.error('Withdrawal failed');
+      setVerifying(false);
     } finally {
       setLoading(false);
     }
@@ -297,10 +311,10 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || recipientsLoading || recipients.length === 0}
+          disabled={loading || verifying || recipientsLoading || recipients.length === 0}
           className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
+          {verifying ? 'Verifying...' : loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
         </button>
       </form>
 
