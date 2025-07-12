@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useSupabase } from '@/hooks/useSupabase';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import TwoFactorVerification from '@/components/TwoFactorVerification';
 
 // Simple client-side rate limiting
 let loginAttempts = 0;
@@ -20,6 +21,11 @@ function Login() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLocked, setIsLocked] = useState(false);
   const [lockoutTime, setLockoutTime] = useState(0);
+  
+  // 2FA states
+  const [show2FA, setShow2FA] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [tempSession, setTempSession] = useState<any>(null);
 
   // Check if account is locked
   useEffect(() => {
@@ -72,26 +78,10 @@ function Login() {
         loginAttempts++;
         lastAttemptTime = Date.now();
         
-        // Log failed login attempt
-        // await auditLogger.logFailedLogin(
-        //   email,
-        //   'client-ip', // In production, get actual IP
-        //   navigator.userAgent
-        // );
-        
         if (loginAttempts >= MAX_ATTEMPTS) {
           setIsLocked(true);
           setLockoutTime(LOCKOUT_DURATION);
           setErrorMsg('Too many failed attempts. Account locked for 15 minutes.');
-          
-          // Log account lockout
-          // await auditLogger.logEvent({
-          //   event_type: 'account_lockout',
-          //   ip_address: 'client-ip',
-          //   user_agent: navigator.userAgent,
-          //   details: { email, attempts: loginAttempts },
-          //   severity: 'high',
-          // });
         } else {
           setErrorMsg(error.message || 'Invalid credentials');
         }
@@ -102,17 +92,31 @@ function Login() {
       // Reset attempts on successful login
       loginAttempts = 0;
       
-      // Log successful login
-      // if (data.user) {
-      //   await auditLogger.logLogin(
-      //     data.user.id,
-      //     'client-ip', // In production, get actual IP
-      //     navigator.userAgent,
-      //     true
-      //   );
-      // }
+      // Check if user has 2FA enabled
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          setLoading(false);
+          return;
+        }
+
+        if (profile?.two_factor_enabled) {
+          // Store temporary session and show 2FA verification
+          setTempSession(data);
+          setUserProfile(profile);
+          setShow2FA(true);
+          setLoading(false);
+          return;
+        }
+      }
       
-      // Success: redirect immediately
+      // No 2FA required, redirect immediately
       router.push('/dashboard');
     } catch (error) {
       setErrorMsg('An unexpected error occurred. Please try again.');
@@ -120,11 +124,46 @@ function Login() {
     }
   }
 
+  const handle2FASuccess = () => {
+    // Complete the login process
+    router.push('/dashboard');
+  };
+
+  const handle2FACancel = () => {
+    // Sign out and reset
+    supabase.auth.signOut();
+    setShow2FA(false);
+    setTempSession(null);
+    setUserProfile(null);
+  };
+
   const formatTime = (ms: number) => {
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  if (show2FA && userProfile) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
+        padding: '1rem'
+      }}>
+        <TwoFactorVerification
+          onSuccess={handle2FASuccess}
+          onCancel={handle2FACancel}
+          userId={userProfile.id}
+          secret={userProfile.two_factor_secret}
+          backupCodes={userProfile.backup_codes || []}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{

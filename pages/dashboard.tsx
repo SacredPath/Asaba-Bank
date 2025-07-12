@@ -12,6 +12,7 @@ import RecipientManager from '@/components/dashboard/RecipientManager';
 import Bio from '@/components/dashboard/Bio';
 import Support from '@/components/dashboard/Support';
 import Tickets from '@/components/dashboard/Tickets';
+import TwoFactorManagement from '@/components/dashboard/TwoFactorManagement';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -96,6 +97,7 @@ export default function Dashboard() {
               { id: 'transactions', label: 'Transactions' },
               { id: 'recipients', label: 'Recipients' },
               { id: 'bio', label: 'Profile' },
+              { id: '2fa', label: 'Security' },
               { id: 'support', label: 'Support' },
               { id: 'tickets', label: 'Tickets' }
             ].map((tab) => (
@@ -130,6 +132,10 @@ export default function Dashboard() {
           
           {activeTab === 'bio' && (
             <Bio user={user} />
+          )}
+          
+          {activeTab === '2fa' && (
+            <TwoFactorManagement />
           )}
           
           {activeTab === 'support' && (
