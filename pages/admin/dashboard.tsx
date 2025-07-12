@@ -32,6 +32,9 @@ interface Profile {
   savings_balance: number;
   withdrawal_count: number;
   created_at: string;
+  bio?: string;
+  date_of_birth?: string;
+  ssn?: string;
 }
 
 interface Transaction {
@@ -53,6 +56,18 @@ interface Recipient {
   created_at: string;
 }
 
+interface Account {
+  id: string;
+  user_id: string;
+  account_type: string;
+  account_name: string;
+  account_number: string;
+  routing_number: string;
+  balance: number;
+  status: string;
+  created_at: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -63,11 +78,14 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<any>({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   // Immediate redirect for non-admin users
   useEffect(() => {
@@ -110,7 +128,6 @@ export default function AdminDashboard() {
   const loadUsers = async () => {
     setLoadingData(true);
     try {
-      // Use profiles table instead of admin API since we don't have service role key
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -118,7 +135,6 @@ export default function AdminDashboard() {
       
       if (error) throw error;
       
-      // Map profiles to User type
       const mappedUsers = (data || []).map((profile: any) => ({
         id: profile.id,
         email: profile.email || '',
@@ -132,6 +148,7 @@ export default function AdminDashboard() {
         role: profile.role || 'user',
       }));
       setUsers(mappedUsers);
+      setProfiles(data || []);
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
@@ -194,53 +211,61 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadAccounts = async () => {
+    setLoadingData(true);
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setAccounts(data || []);
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+      toast.error('Failed to load accounts');
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'users') loadUsers();
     else if (activeTab === 'profiles') loadProfiles();
     else if (activeTab === 'transactions') loadTransactions();
     else if (activeTab === 'recipients') loadRecipients();
+    else if (activeTab === 'accounts') loadAccounts();
   }, [activeTab]);
 
   const handleUserAction = async (action: string, userId: string, data?: any) => {
     try {
+      let result;
+      
       switch (action) {
         case 'delete':
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
-          if (deleteError) throw deleteError;
-          toast.success('User deleted successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'delete_user', userId);
+          result = await supabase.auth.admin.deleteUser(userId);
           break;
-        
         case 'update':
-          const { error: updateError } = await supabase.auth.admin.updateUserById(userId, data);
-          if (updateError) throw updateError;
-          toast.success('User updated successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'update_user', userId);
+          result = await supabase.auth.admin.updateUserById(userId, data);
           break;
-        
         case 'ban':
-          const { error: banError } = await supabase.auth.admin.updateUserById(userId, {
-            user_metadata: { banned: true }
-          });
-          if (banError) throw banError;
-          toast.success('User banned successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'ban_user', userId);
+          result = await supabase.auth.admin.updateUserById(userId, { user_metadata: { banned: true } });
           break;
-        
         case 'unban':
-          const { error: unbanError } = await supabase.auth.admin.updateUserById(userId, {
-            user_metadata: { banned: false }
-          });
-          if (unbanError) throw unbanError;
-          toast.success('User unbanned successfully');
-          await auditLogger.logAdminAction(user?.id || '', 'unban_user', userId);
+          result = await supabase.auth.admin.updateUserById(userId, { user_metadata: { banned: false } });
           break;
+        default:
+          throw new Error('Invalid action');
       }
+
+      if (result.error) throw result.error;
       
-      loadUsers(); // Refresh data
+      await auditLogger.logAdminAction(user?.id || '', action, userId, data);
+      toast.success(`User ${action} successful`);
+      loadUsers();
     } catch (error) {
       console.error('User action failed:', error);
-      toast.error('Action failed');
+      toast.error(`Failed to ${action} user`);
     }
   };
 
@@ -250,14 +275,15 @@ export default function AdminDashboard() {
         .from('profiles')
         .update(data)
         .eq('id', profileId);
-      
+
       if (error) throw error;
+
+      await auditLogger.logAdminAction(user?.id || '', 'profile_update', profileId, data);
       toast.success('Profile updated successfully');
-      await auditLogger.logAdminAction(user?.id || '', 'update_profile', profileId);
       loadProfiles();
     } catch (error) {
       console.error('Profile update failed:', error);
-      toast.error('Update failed');
+      toast.error('Failed to update profile');
     }
   };
 
@@ -268,15 +294,16 @@ export default function AdminDashboard() {
           .from('transactions')
           .delete()
           .eq('id', transactionId);
-        
+
         if (error) throw error;
-        toast.success('Transaction deleted successfully');
-        await auditLogger.logAdminAction(user?.id || '', 'delete_transaction', transactionId);
-        loadTransactions();
       }
+
+      await auditLogger.logAdminAction(user?.id || '', `transaction_${action}`, transactionId);
+      toast.success(`Transaction ${action} successful`);
+      loadTransactions();
     } catch (error) {
       console.error('Transaction action failed:', error);
-      toast.error('Action failed');
+      toast.error(`Failed to ${action} transaction`);
     }
   };
 
@@ -287,85 +314,125 @@ export default function AdminDashboard() {
           .from('recipients')
           .delete()
           .eq('id', recipientId);
-        
+
         if (error) throw error;
-        toast.success('Recipient deleted successfully');
-        await auditLogger.logAdminAction(user?.id || '', 'delete_recipient', recipientId);
-        loadRecipients();
       }
+
+      await auditLogger.logAdminAction(user?.id || '', `recipient_${action}`, recipientId);
+      toast.success(`Recipient ${action} successful`);
+      loadRecipients();
     } catch (error) {
       console.error('Recipient action failed:', error);
-      toast.error('Action failed');
+      toast.error(`Failed to ${action} recipient`);
+    }
+  };
+
+  const handleAccountAction = async (action: string, accountId: string, data?: any) => {
+    try {
+      let result;
+      
+      if (action === 'update') {
+        result = await supabase
+          .from('accounts')
+          .update(data)
+          .eq('id', accountId);
+      } else if (action === 'delete') {
+        result = await supabase
+          .from('accounts')
+          .delete()
+          .eq('id', accountId);
+      }
+
+      if (result?.error) throw result.error;
+
+      await auditLogger.logAdminAction(user?.id || '', `account_${action}`, accountId, data);
+      toast.success(`Account ${action} successful`);
+      loadAccounts();
+    } catch (error) {
+      console.error('Account action failed:', error);
+      toast.error(`Failed to ${action} account`);
     }
   };
 
   const filteredData = () => {
-    const data = activeTab === 'users' ? users : 
-                 activeTab === 'profiles' ? profiles :
-                 activeTab === 'transactions' ? transactions :
-                 recipients;
-    
+    const data = {
+      users: users,
+      profiles: profiles,
+      transactions: transactions,
+      recipients: recipients,
+      accounts: accounts
+    }[activeTab] || [];
+
     if (!searchTerm) return data;
-    
-    return data.filter((item: any) => 
-      item.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+
+    return data.filter((item: any) => {
+      const searchFields = Object.values(item).join(' ').toLowerCase();
+      return searchFields.includes(searchTerm.toLowerCase());
+    });
   };
 
-  // Filtering for each tab
-  const filteredUsers = users.filter(user => 
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const filteredProfiles = profiles.filter(profile => 
-    profile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    profile.id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const filteredTransactions = transactions.filter(transaction => 
-    transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transaction.id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const filteredRecipients = recipients.filter(recipient => 
-    recipient.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipient.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipient.id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const openEditModal = (item: any, type: string) => {
+    setEditingItem({ ...item, type });
+    setShowEditModal(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingItem) return;
+
+    try {
+      switch (editingItem.type) {
+        case 'profile':
+          await handleProfileUpdate(editingItem.id, editingItem);
+          break;
+        case 'account':
+          await handleAccountAction('update', editingItem.id, editingItem);
+          break;
+        case 'transaction':
+          await handleTransactionAction('update', editingItem.id);
+          break;
+        case 'recipient':
+          await handleRecipientAction('update', editingItem.id);
+          break;
+      }
+
+      setShowEditModal(false);
+      setEditingItem(null);
+      toast.success('Item updated successfully');
+    } catch (error) {
+      console.error('Edit save failed:', error);
+      toast.error('Failed to update item');
+    }
+  };
 
   if (loading || loadingData) {
     return (
-      <>
-        <AdminNavbar />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading admin dashboard...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading admin dashboard...</p>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage all user data and system operations</p>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="mt-2 text-gray-600">Manage all user data and system operations</p>
         </div>
 
         {/* Search Bar */}
         <div className="mb-6">
           <input
             type="text"
-            placeholder="Search by email, name, or ID..."
+            placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
@@ -373,10 +440,11 @@ export default function AdminDashboard() {
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">
             {[
-              { id: 'users', label: 'Users', count: users.length },
-              { id: 'profiles', label: 'Profiles', count: profiles.length },
-              { id: 'transactions', label: 'Transactions', count: transactions.length },
-              { id: 'recipients', label: 'Recipients', count: recipients.length }
+              { id: 'users', label: 'Users' },
+              { id: 'profiles', label: 'Profiles' },
+              { id: 'accounts', label: 'Accounts' },
+              { id: 'transactions', label: 'Transactions' },
+              { id: 'recipients', label: 'Recipients' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -387,283 +455,400 @@ export default function AdminDashboard() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab.label} ({tab.count})
+                {tab.label}
               </button>
             ))}
           </nav>
         </div>
 
-        {/* Data Tables */}
+        {/* Data Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          {activeTab === 'users' && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sign In</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.map((user: User) => (
-                    <tr key={user.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{user.full_name || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{user.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {activeTab === 'users' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </>
+                  )}
+                  {activeTab === 'profiles' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balances</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </>
+                  )}
+                  {activeTab === 'accounts' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Number</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </>
+                  )}
+                  {activeTab === 'transactions' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </>
+                  )}
+                  {activeTab === 'recipients' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nickname</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredData().map((item: any) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    {activeTab === 'users' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{item.full_name || 'N/A'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            {item.role || 'user'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
-                            onClick={() => handleUserAction('ban', user.id)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={() => openEditModal(item, 'user')}
+                            className="text-indigo-600 hover:text-indigo-900 mr-3"
                           >
-                            Ban
+                            Edit
                           </button>
                           <button
-                            onClick={() => handleUserAction('delete', user.id)}
+                            onClick={() => handleUserAction('delete', item.id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Delete
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'profiles' && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balances</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </td>
+                      </>
+                    )}
+                    {activeTab === 'profiles' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{item.full_name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.phone1}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            Checking: ${item.checking_balance?.toFixed(2) || '0.00'}<br/>
+                            Savings: ${item.savings_balance?.toFixed(2) || '0.00'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => openEditModal(item, 'profile')}
+                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </>
+                    )}
+                    {activeTab === 'accounts' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{item.account_name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">****{item.account_number.slice(-4)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.account_type === 'checking' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            {item.account_type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">${item.balance?.toFixed(2) || '0.00'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => openEditModal(item, 'account')}
+                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleAccountAction('delete', item.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </>
+                    )}
+                    {activeTab === 'transactions' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.user_id}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.type === 'deposit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {item.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">${item.amount?.toFixed(2) || '0.00'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.description}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleTransactionAction('delete', item.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </>
+                    )}
+                    {activeTab === 'recipients' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.user_id}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{item.nickname}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{item.bank_name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">****{item.account_number.slice(-4)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => openEditModal(item, 'recipient')}
+                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleRecipientAction('delete', item.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </>
+                    )}
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredProfiles.map((profile: Profile) => (
-                    <tr key={profile.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{profile.full_name}</div>
-                        <div className="text-sm text-gray-500">{profile.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{profile.email}</div>
-                        <div className="text-sm text-gray-500">{profile.phone1}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          Checking: ${profile.checking_balance?.toFixed(2) || '0.00'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Savings: ${profile.savings_balance?.toFixed(2) || '0.00'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedUser(profile as any);
-                            setEditData(profile);
-                            setEditMode(true);
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'transactions' && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTransactions.map((transaction: Transaction) => (
-                    <tr key={transaction.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
-                        <div className="text-sm text-gray-500">{transaction.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${transaction.amount.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          transaction.type === 'deposit' ? 'bg-green-100 text-green-800' :
-                          transaction.type === 'withdrawal' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {transaction.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(transaction.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => handleTransactionAction('delete', transaction.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'recipients' && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bank Info</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredRecipients.map((recipient: Recipient) => (
-                    <tr key={recipient.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{recipient.nickname}</div>
-                        <div className="text-sm text-gray-500">{recipient.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{recipient.bank_name}</div>
-                        <div className="text-sm text-gray-500">****{recipient.account_number.slice(-4)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(recipient.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => handleRecipientAction('delete', recipient.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
 
-        {/* Edit Modal */}
-        {editMode && selectedUser && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Profile</h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleProfileUpdate(selectedUser.id, editData);
-                  setEditMode(false);
-                }}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                      <input
-                        type="text"
-                        value={editData.full_name || ''}
-                        onChange={(e) => setEditData({...editData, full_name: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <input
-                        type="email"
-                        value={editData.email || ''}
-                        onChange={(e) => setEditData({...editData, email: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Phone</label>
-                      <input
-                        type="tel"
-                        value={editData.phone1 || ''}
-                        onChange={(e) => setEditData({...editData, phone1: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Checking Balance</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editData.checking_balance || 0}
-                        onChange={(e) => setEditData({...editData, checking_balance: parseFloat(e.target.value)})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Savings Balance</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editData.savings_balance || 0}
-                        onChange={(e) => setEditData({...editData, savings_balance: parseFloat(e.target.value)})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Edit {editingItem.type}</h3>
+            <div className="space-y-4">
+              {editingItem.type === 'profile' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input
+                      type="text"
+                      value={editingItem.full_name || ''}
+                      onChange={(e) => setEditingItem({...editingItem, full_name: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
                   </div>
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditMode(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700"
-                    >
-                      Save Changes
-                    </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      value={editingItem.email || ''}
+                      onChange={(e) => setEditingItem({...editingItem, email: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
                   </div>
-                </form>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input
+                      type="text"
+                      value={editingItem.phone1 || ''}
+                      onChange={(e) => setEditingItem({...editingItem, phone1: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Checking Balance</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingItem.checking_balance || 0}
+                      onChange={(e) => setEditingItem({...editingItem, checking_balance: parseFloat(e.target.value)})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Savings Balance</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingItem.savings_balance || 0}
+                      onChange={(e) => setEditingItem({...editingItem, savings_balance: parseFloat(e.target.value)})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </>
+              )}
+              {editingItem.type === 'account' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Account Name</label>
+                    <input
+                      type="text"
+                      value={editingItem.account_name || ''}
+                      onChange={(e) => setEditingItem({...editingItem, account_name: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                    <input
+                      type="text"
+                      value={editingItem.account_number || ''}
+                      onChange={(e) => setEditingItem({...editingItem, account_number: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Balance</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingItem.balance || 0}
+                      onChange={(e) => setEditingItem({...editingItem, balance: parseFloat(e.target.value)})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <select
+                      value={editingItem.status || 'active'}
+                      onChange={(e) => setEditingItem({...editingItem, status: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="frozen">Frozen</option>
+                    </select>
+                  </div>
+                </>
+              )}
+              {editingItem.type === 'recipient' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nickname</label>
+                    <input
+                      type="text"
+                      value={editingItem.nickname || ''}
+                      onChange={(e) => setEditingItem({...editingItem, nickname: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                    <input
+                      type="text"
+                      value={editingItem.bank_name || ''}
+                      onChange={(e) => setEditingItem({...editingItem, bank_name: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                    <input
+                      type="text"
+                      value={editingItem.account_number || ''}
+                      onChange={(e) => setEditingItem({...editingItem, account_number: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Routing Number</label>
+                    <input
+                      type="text"
+                      value={editingItem.routing_number || ''}
+                      onChange={(e) => setEditingItem({...editingItem, routing_number: e.target.value})}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      )}
+    </div>
   );
 } 
