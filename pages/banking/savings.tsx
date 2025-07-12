@@ -33,7 +33,7 @@ export default function SavingsAccounts() {
                 <li>No monthly maintenance fees</li>
               </ul>
               <div className="mt-6">
-                <a href="/register" className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+                <a href="/account/open" className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
                   Open Account
                 </a>
               </div>
@@ -54,7 +54,7 @@ export default function SavingsAccounts() {
                 <li>Ideal for emergency funds</li>
               </ul>
               <div className="mt-6">
-                <a href="/register" className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+                <a href="/account/open" className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
                   Open Account
                 </a>
               </div>
@@ -75,7 +75,7 @@ export default function SavingsAccounts() {
                 <li>Teach kids about saving</li>
               </ul>
               <div className="mt-6">
-                <a href="/register" className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+                <a href="/account/open" className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
                   Open Account
                 </a>
               </div>
@@ -134,7 +134,7 @@ export default function SavingsAccounts() {
 
           {/* Call to Action */}
           <div className="text-center">
-            <a href="/register" className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition">
+            <a href="/account/open" className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition">
               Open a Savings Account
             </a>
             <p className="text-gray-600 mt-4">

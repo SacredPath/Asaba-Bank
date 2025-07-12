@@ -103,7 +103,7 @@ export default function Navbar({ showHome }: NavbarProps) {
               ) : (
                 <div className="flex items-center space-x-2">
                   <Link href="/auth/login" className="hover:text-blue-200 transition-colors px-3 py-2 rounded-md text-sm font-medium">Login</Link>
-                  <Link href="/register" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full transition-colors shadow-md">Set Up Online Access</Link>
+                  <Link href="/account/open" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full transition-colors shadow-md">Open Account</Link>
                 </div>
               )}
             </div>
@@ -146,7 +146,7 @@ export default function Navbar({ showHome }: NavbarProps) {
               ) : (
                 <div className="px-2 space-y-2">
                   <Link href="/auth/login" className="block text-center hover:text-blue-200 transition-colors px-3 py-2 rounded-md text-base font-medium">Login</Link>
-                  <Link href="/register" className="block text-center bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full transition-colors shadow-md">Set Up Online Access</Link>
+                  <Link href="/account/open" className="block text-center bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full transition-colors shadow-md">Open Account</Link>
                 </div>
               )}
             </div>

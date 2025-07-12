@@ -14,12 +14,34 @@ export default function AdminNavbar() {
   const supabase = useSupabase();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [adminName, setAdminName] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
-      loadAdminProfile();
+      checkAdminAccess();
     }
   }, [user?.id]);
+
+  const checkAdminAccess = async () => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', user?.id)
+        .single();
+
+      if (error || profile?.role !== 'admin') {
+        router.push('/auth/login');
+        return;
+      }
+
+      setIsAdmin(true);
+      setAdminName(profile?.full_name || user?.email?.split('@')[0] || 'Admin');
+    } catch (error) {
+      console.error('Error checking admin access:', error);
+      router.push('/auth/login');
+    }
+  };
 
   const loadAdminProfile = async () => {
     try {
@@ -48,6 +70,11 @@ export default function AdminNavbar() {
       setIsLoggingOut(false);
     }
   };
+
+  // Don't render if not admin
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <nav className="bg-indigo-800 text-white shadow-lg">

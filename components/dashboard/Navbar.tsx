@@ -104,9 +104,7 @@ export default function Navbar({}: NavbarProps) {
                           <Link href="/auth/login" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
               Login
             </Link>
-                          <Link href="/register" className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
-              Set Up Online Access
-            </Link>
+                          <Link href="/account/open" className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Open Account</Link>
             </div>
           )}
         </div>

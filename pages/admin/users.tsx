@@ -7,15 +7,18 @@ import { useSupabase } from '@/hooks/useSupabase';
 import { auditLogger } from '@/lib/audit-logger';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
-import { User } from '@supabase/supabase-js';
 
-interface AdminUser {
+interface User {
   id: string;
-  email?: string;
+  email: string;
   created_at: string;
   last_sign_in_at?: string;
-  user_metadata?: any;
-  app_metadata?: any;
+  full_name?: string;
+  phone1?: string;
+  checking_balance?: number;
+  savings_balance?: number;
+  withdrawal_count?: number;
+  role?: string;
 }
 
 export default function AdminUsers() {
@@ -29,6 +32,8 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<any>({});
+  const [createForm, setCreateForm] = useState({ email: '', password: '', full_name: '', role: 'user' });
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Immediate redirect for non-admin users
   useEffect(() => {
@@ -186,7 +191,7 @@ export default function AdminUsers() {
   const filteredUsers = users.filter(user => 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.user_metadata?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading || loadingData) {
@@ -247,24 +252,24 @@ export default function AdminUsers() {
                   <tr key={user.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {user.user_metadata?.full_name || 'N/A'}
+                        {user.full_name || 'N/A'}
                       </div>
                       <div className="text-sm text-gray-500">{user.id}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.user_metadata?.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                        user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {user.user_metadata?.role || 'user'}
+                        {user.role || 'user'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.user_metadata?.banned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        user.role === 'banned' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                       }`}>
-                        {user.user_metadata?.banned ? 'Banned' : 'Active'}
+                        {user.role === 'banned' ? 'Banned' : 'Active'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -275,7 +280,7 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        {user.user_metadata?.banned ? (
+                        {user.role === 'banned' ? (
                           <button
                             onClick={() => handleUserAction('unban', user.id)}
                             className="text-green-600 hover:text-green-900"
