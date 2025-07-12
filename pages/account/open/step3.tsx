@@ -149,12 +149,12 @@ const Step3: React.FC = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Step 3: Additional Information</h1>
-        <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Step 3: Additional Information</h1>
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Identification Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Identification</h2>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4">Identification</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">ID Type</label>

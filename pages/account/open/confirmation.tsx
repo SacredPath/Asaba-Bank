@@ -12,16 +12,16 @@ export default function AccountOpeningConfirmation() {
         <meta name="description" content="Thank you for opening an account with AsabaBank. Your application is being processed." />
       </Head>
 
-      <section className="bg-white py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-extrabold text-indigo-800 mb-4">Thank You!</h1>
-            <p className="text-xl text-gray-600">
+      <section className="bg-white py-8 sm:py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-indigo-800 mb-4">Thank You!</h1>
+            <p className="text-lg sm:text-xl text-gray-600">
               Your account application has been submitted successfully.
             </p>
           </div>
 
-          <div className="bg-indigo-50 rounded-xl p-8 mb-16">
+          <div className="bg-indigo-50 rounded-xl p-4 sm:p-8 mb-12 sm:mb-16">
             <div className="space-y-8">
               <div>
                 <h2 className="text-2xl font-semibold text-indigo-700 mb-4">Application Status</h2>

@@ -74,9 +74,9 @@ export default function AccountOpeningStep4() {
         <meta name="description" content="Finalizing your account opening process" />
       </Head>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Finalizing Your Application</h1>
-        <p className="text-gray-600 mb-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Finalizing Your Application</h1>
+        <p className="text-gray-600 mb-6 sm:mb-8">
           Your account is being created. This may take a moment...
         </p>
 

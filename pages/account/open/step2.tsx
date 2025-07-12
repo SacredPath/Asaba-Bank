@@ -75,17 +75,17 @@ export default function AccountOpeningStep2() {
         <meta name="description" content="Provide your account details and preferences to open a new bank account with AsabaBank." />
       </Head>
 
-      <section className="bg-white py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-extrabold text-indigo-800 mb-4">Account Details</h1>
-            <p className="text-xl text-gray-600">
+      <section className="bg-white py-8 sm:py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-indigo-800 mb-4">Account Details</h1>
+            <p className="text-lg sm:text-xl text-gray-600">
               Step 2 of 4 - Please provide your account preferences
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-xl shadow">
-            <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white p-4 sm:p-8 rounded-xl shadow">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Employment Info */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
