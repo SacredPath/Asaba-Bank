@@ -84,14 +84,17 @@ export default function Dashboard() {
     return null; // Will redirect to login
   }
 
+  console.log('[Dashboard] Current activeTab:', activeTab);
+  console.log('[Dashboard] TwoFactorManagement import:', typeof TwoFactorManagement);
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <Greeting name={profile?.full_name || user?.email?.split('@')[0] || 'User'} />
         
         {/* Navigation Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
+        <div className="border-b border-gray-200 mb-4 sm:mb-6">
+          <nav className="-mb-px flex overflow-x-auto space-x-4 sm:space-x-8 pb-2">
             {[
               { id: 'summary', label: 'Account Summary' },
               { id: 'transactions', label: 'Transactions' },
@@ -100,24 +103,30 @@ export default function Dashboard() {
               { id: '2fa', label: 'Security' },
               { id: 'support', label: 'Support' },
               { id: 'tickets', label: 'Tickets' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            ].map((tab) => {
+              console.log(`[Dashboard] Rendering tab: ${tab.id} - ${tab.label}`);
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    console.log(`[Dashboard] Clicking tab: ${tab.id}`);
+                    setActiveTab(tab.id);
+                  }}
+                  className={`py-2 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
         {/* Tab Content */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {activeTab === 'summary' && (
             <AccountSummary profile={profile} onUpdate={handleProfileUpdate} />
           )}
@@ -135,7 +144,9 @@ export default function Dashboard() {
           )}
           
           {activeTab === '2fa' && (
-            <TwoFactorManagement />
+            <div>
+              <TwoFactorManagement />
+            </div>
           )}
           
           {activeTab === 'support' && (

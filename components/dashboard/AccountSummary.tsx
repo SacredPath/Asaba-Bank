@@ -28,19 +28,19 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Summary</h2>
+    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Account Summary</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Checking Account */}
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 sm:p-6 border border-blue-200">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-blue-900">Life Green Checking</h3>
-              <p className="text-sm text-blue-700">Primary Account</p>
+              <h3 className="text-base sm:text-lg font-semibold text-blue-900">Life Green Checking</h3>
+              <p className="text-xs sm:text-sm text-blue-700">Primary Account</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-blue-900">
+              <p className="text-xl sm:text-2xl font-bold text-blue-900">
                 ${profile?.checking_balance?.toFixed(2) || '0.00'}
               </p>
               <p className="text-xs text-blue-600">Available Balance</p>
@@ -50,14 +50,14 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
           <div className="flex space-x-2">
             <button
               onClick={() => setShowDepositForm(true)}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition text-sm font-medium"
+              className="flex-1 bg-blue-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-blue-700 transition text-xs sm:text-sm font-medium"
             >
               Deposit
             </button>
             <button
               onClick={() => setShowWithdrawForm(true)}
               disabled={profile?.withdrawal_count >= 3}
-              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 bg-red-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-red-700 transition text-xs sm:text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {profile?.withdrawal_count >= 3 ? 'Limit Reached' : 'Withdraw'}
             </button>
@@ -73,14 +73,14 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
         </div>
 
         {/* Savings Account */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 sm:p-6 border border-green-200">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-green-900">BigTree Savings</h3>
-              <p className="text-sm text-green-700">High-Yield Savings</p>
+              <h3 className="text-base sm:text-lg font-semibold text-green-900">BigTree Savings</h3>
+              <p className="text-xs sm:text-sm text-green-700">High-Yield Savings</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-green-900">
+              <p className="text-xl sm:text-2xl font-bold text-green-900">
                 ${profile?.savings_balance?.toFixed(2) || '0.00'}
               </p>
               <p className="text-xs text-green-600">Available Balance</p>
@@ -90,14 +90,14 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
           <div className="flex space-x-2">
             <button
               onClick={() => setShowDepositForm(true)}
-              className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition text-sm font-medium"
+              className="flex-1 bg-green-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-green-700 transition text-xs sm:text-sm font-medium"
             >
               Deposit
             </button>
             <button
               onClick={() => setShowWithdrawForm(true)}
               disabled={profile?.withdrawal_count >= 3}
-              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 bg-red-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-red-700 transition text-xs sm:text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {profile?.withdrawal_count >= 3 ? 'Limit Reached' : 'Withdraw'}
             </button>
@@ -114,9 +114,9 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
       </div>
 
       {/* Account Information */}
-      <div className="mt-6 bg-gray-50 rounded-lg p-4">
+      <div className="mt-4 sm:mt-6 bg-gray-50 rounded-lg p-3 sm:p-4">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">Account Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-sm">
           <div>
             <p className="text-gray-600">Account Holder:</p>
             <p className="font-medium">{profile?.full_name || 'N/A'}</p>
