@@ -146,7 +146,11 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
       // Get recipient details for better transaction description
       const selectedRecipient = recipients.find(r => r.id === formData.recipientId);
-      const recipientName = selectedRecipient ? selectedRecipient.nickname : 'Unknown Recipient';
+      console.log('[WithdrawalForm] formData.recipientId:', formData.recipientId);
+      console.log('[WithdrawalForm] recipients:', recipients);
+      console.log('[WithdrawalForm] selectedRecipient:', selectedRecipient);
+      const recipientName = selectedRecipient ? (selectedRecipient.nickname || selectedRecipient.account_name || 'Unknown Recipient') : 'Unknown Recipient';
+      console.log('[WithdrawalForm] recipientName:', recipientName);
 
       // Start verification process
       setVerifying(true);
