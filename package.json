@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.3.0",
     "@supabase/supabase-js": "^2.39.8",
+    "dotenv": "^17.2.0",
     "jspdf": "^2.5.1",
     "next": "14.1.4",
     "nodemailer": "^6.9.13",
@@ -28,4 +29,4 @@
     "postcss": "^8",
     "typescript": "^5.3.3"
   }
-} 
+}

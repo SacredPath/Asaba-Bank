@@ -64,53 +64,12 @@ export default function DepositSection({ accountType, userId, isAuthenticated }:
       // Simulate 3-second processing delay
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Get user profile data for account details
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          account_type: accountType.toLowerCase(),
-          transaction_type: 'deposit',
-          method: method,
-          amount: depositAmount,
-          status: 'pending',
-          account_name: `${accountType} Account`,
-          bank_name: 'Asaba Bank',
-          routing_number: accountType === 'Checking' ? '123456789' : '987654321',
-          description: `${method} deposit to ${accountType} account`
-        });
-
-      if (transactionError) {
-        throw transactionError;
-      }
-
-      // Update balance
-      const balanceField = accountType === 'Checking' ? 'checking_balance' : 'savings_balance';
-      const newBalance = (balance || 0) + depositAmount;
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ [balanceField]: newBalance })
-        .eq('id', user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setBalance(newBalance);
+      // Don't create any transactions - deposits are handled by admin only
+      // Just show success message with instructions
+      toast.success('Please use the bank details above to transfer money from your external bank account. Your deposit will be confirmed by our team once funds are received.');
+      
       setAmount('');
-      toast.success(`${method} deposit of $${depositAmount.toFixed(2)} submitted successfully!`);
+      setShowConfirmation(false);
       
     } catch (error: any) {
       console.error('Deposit error:', error);
@@ -123,7 +82,7 @@ export default function DepositSection({ accountType, userId, isAuthenticated }:
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">{accountType} Deposits</h2>
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">Get {accountType} Deposit Details</h2>
       
       <div className="space-y-4">
         <div>
@@ -180,7 +139,7 @@ export default function DepositSection({ accountType, userId, isAuthenticated }:
           disabled={isProcessing || !amount || parseFloat(amount) <= 0}
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all duration-200 shadow-lg hover:shadow-xl"
         >
-          {isProcessing ? 'Processing...' : `Submit ${method} Deposit`}
+          {isProcessing ? 'Processing...' : `Get ${method} Bank Details`}
         </button>
 
         {showConfirmation && isProcessing && (

@@ -20,12 +20,22 @@ export default function DepositForm({ onClose }: DepositFormProps) {
     swiftCode: ''
   });
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [accountNumber, setAccountNumber] = useState<string>('');
 
   useEffect(() => {
     if (user?.id && typeof user.id === 'string' && user.id !== 'undefined' && user.id !== 'null' && user.id.trim() !== '') {
       loadUserProfile();
+      fetchAccountNumber(formData.accountType);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && formData.accountType) {
+      fetchAccountNumber(formData.accountType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.accountType]);
 
   const loadUserProfile = async () => {
     if (!user?.id) {
@@ -53,6 +63,23 @@ export default function DepositForm({ onClose }: DepositFormProps) {
     }
   };
 
+  const fetchAccountNumber = async (accountType: string) => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('account_number')
+        .eq('user_id', user.id)
+        .eq('account_type', accountType)
+        .single();
+      if (error) throw error;
+      setAccountNumber(data?.account_number || '');
+    } catch (error) {
+      console.error('Error fetching account number:', error);
+      setAccountNumber('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -61,37 +88,13 @@ export default function DepositForm({ onClose }: DepositFormProps) {
       const amount = parseFloat(formData.amount);
       if (isNaN(amount) || amount <= 0) {
         toast.error('Please enter a valid amount');
+        setLoading(false);
         return;
       }
 
-      // Calculate fee for wire transfers
-      let fee = 0;
-      if (formData.transferType === 'wire') {
-        fee = 25; // Wire transfer fee
-      }
-
-      // Log transaction as pending (don't update balance yet)
-      const transactionData = {
-        user_id: user?.id,
-        type: 'deposit',
-        amount: amount,
-        note: `Deposit via ${formData.transferType.toUpperCase()} to ${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} - ${formData.swiftCode || 'No description'}`
-      };
-
-      console.log('Creating pending deposit transaction:', transactionData);
-
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert(transactionData);
-
-      if (transactionError) {
-        console.error('Transaction insert error:', transactionError);
-        throw transactionError;
-      }
-
-      console.log('Pending deposit transaction created successfully');
-
-      toast.success('Deposit request submitted. We will confirm when funds are received.');
+      // Don't create any transactions - deposits are handled by admin only
+      // Just show success message with instructions
+      toast.success('Please use the bank details above to transfer money from your external bank account. Your deposit will be confirmed by our team once funds are received.');
       onClose();
     } catch (error) {
       console.error('Deposit error:', error);
@@ -104,7 +107,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Request Deposit</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Get Deposit Details</h2>
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
@@ -118,7 +121,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
       <div className="mb-4 p-3 bg-gray-50 rounded-md">
         <p className="text-sm text-gray-600">
           Use the bank details below to transfer money from your external bank account to us. 
-          Your deposit will be confirmed once we receive the funds.
+          Your deposit will be confirmed by our team once funds are received.
         </p>
       </div>
 
@@ -178,7 +181,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
               <span className="font-medium text-blue-700">Account Name:</span> {userProfile?.full_name || 'Loading...'}
             </div>
             <div>
-              <span className="font-medium text-blue-700">Account Number:</span> 601756752
+              <span className="font-medium text-blue-700">Account Number:</span> {accountNumber || 'Loading...'}
             </div>
             <div>
               <span className="font-medium text-blue-700">Routing Number:</span> 091000022
@@ -226,7 +229,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
           disabled={loading}
           className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Submitting...' : 'Submit Deposit Request'}
+          {loading ? 'Processing...' : 'Get Bank Details'}
         </button>
       </form>
     </div>
