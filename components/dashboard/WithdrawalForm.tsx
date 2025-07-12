@@ -173,7 +173,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       const transactionData = {
         user_id: user?.id,
         type: 'withdrawal',
-        amount: -amount,
+        amount: amount, // Store positive amount, handle negative display in UI
         note: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`
       };
 
