@@ -163,12 +163,15 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         .insert({
           user_id: user?.id,
           amount: -amount,
-          type: 'withdrawal',
-          description: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`,
+          transaction_type: 'withdrawal',
+          method: formData.transferType === 'ach' ? 'ACH' : 'Wire',
           account_type: formData.accountType,
-          transfer_type: formData.transferType,
+          account_name: `${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} Account`,
+          bank_name: selectedRecipient?.bank_name || '',
+          routing_number: selectedRecipient?.routing_number || '',
           recipient_id: formData.recipientId,
-          fee: fee
+          description: `Withdrawal to ${recipientName} via ${formData.transferType.toUpperCase()} - ${formData.description}`,
+          status: 'completed'
         });
 
       if (transactionError) throw transactionError;

@@ -74,15 +74,13 @@ export default function DepositForm({ onClose }: DepositFormProps) {
       const transactionData = {
         user_id: user?.id,
         amount: amount,
-        type: 'deposit',
-        description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.swiftCode || 'No description'}`,
+        transaction_type: 'deposit',
+        method: formData.transferType === 'ach' ? 'ACH' : 'Wire',
         account_type: formData.accountType,
-        transfer_type: formData.transferType,
-        account_holder_name: userProfile?.full_name || user?.email, // Use user's name or email
-        account_number: userProfile?.account_number || 'N/A', // Use user's account number or 'N/A'
-        routing_number: userProfile?.routing_number || '091000022', // Use user's routing number or default
-        swift_code: formData.swiftCode,
-        fee: fee,
+        account_name: `${formData.accountType === 'checking' ? 'Life Green Checking' : 'BigTree Savings'} Account`,
+        bank_name: 'Asaba National Bank',
+        routing_number: '091000022',
+        description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.swiftCode || 'No description'}`,
         status: 'pending' // Mark as pending until manually confirmed
       };
 
