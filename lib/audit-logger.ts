@@ -1,12 +1,15 @@
 // lib/audit-logger.ts
-import { useSupabase } from '@/hooks/useSupabase';
+import { createClient } from '@supabase/supabase-js';
 
 class AuditLogger {
   private supabase: any;
 
   constructor() {
-    // Initialize with null, will be set when needed
-    this.supabase = null;
+    // Initialize with Supabase client
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
   }
 
   setSupabase(supabase: any) {
@@ -21,11 +24,14 @@ class AuditLogger {
       }
 
       await this.supabase.from('audit_logs').insert({
-        admin_id: adminId,
-        action: action,
-        target_id: targetId,
-        details: details,
-        timestamp: new Date().toISOString()
+        user_id: adminId,
+        event_type: `admin_${action}`,
+        details: {
+          action,
+          target_id: targetId,
+          ...details
+        },
+        severity: 'medium'
       });
     } catch (error) {
       console.error('Audit logging failed:', error);
@@ -41,9 +47,9 @@ class AuditLogger {
 
       await this.supabase.from('audit_logs').insert({
         user_id: userId,
-        action: action,
+        event_type: `user_${action}`,
         details: details,
-        timestamp: new Date().toISOString()
+        severity: 'low'
       });
     } catch (error) {
       console.error('Audit logging failed:', error);

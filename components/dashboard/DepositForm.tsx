@@ -65,12 +65,18 @@ export default function DepositForm({ onClose }: DepositFormProps) {
 
   const fetchAccountNumber = async (accountType: string) => {
     if (!user?.id) return;
+    // Only allow 'checking' or 'savings' as valid account types
+    const validAccountTypes = ['checking', 'savings'];
+    const safeAccountType = validAccountTypes.includes(accountType) ? accountType : 'checking';
+    if (!validAccountTypes.includes(accountType)) {
+      console.warn(`[DepositForm] Invalid accountType: ${accountType}, defaulting to 'checking'`);
+    }
     try {
       const { data, error } = await supabase
         .from('accounts')
         .select('account_number')
         .eq('user_id', user.id)
-        .eq('account_type', accountType)
+        .eq('account_type', safeAccountType)
         .single();
       if (error) throw error;
       setAccountNumber(data?.account_number || '');

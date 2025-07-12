@@ -1,5 +1,34 @@
 import { createHmac, randomBytes } from 'crypto';
 
+// Base32 encoder for TOTP compatibility
+function base32Encode(buffer: Buffer): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0;
+  let value = 0;
+  let output = '';
+  
+  for (let i = 0; i < buffer.length; i++) {
+    value = (value << 8) | buffer[i];
+    bits += 8;
+    
+    while (bits >= 5) {
+      output += alphabet[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  
+  if (bits > 0) {
+    output += alphabet[(value << (5 - bits)) & 31];
+  }
+  
+  // Add padding
+  while (output.length % 8 !== 0) {
+    output += '=';
+  }
+  
+  return output;
+}
+
 // Simple base32 decoder for TOTP compatibility
 function base32Decode(str: string): Buffer {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -34,9 +63,11 @@ export class TwoFactorAuth {
   private static readonly PERIOD = 30; // 30 seconds
   private static readonly ALGORITHM = 'sha1';
 
-  // Generate a secret key for TOTP
+  // Generate a secret key for TOTP (proper base32 format)
   static generateSecret(): string {
-    return randomBytes(20).toString('hex').toUpperCase();
+    // Generate 20 bytes (160 bits) for the secret
+    const secretBytes = randomBytes(20);
+    return base32Encode(secretBytes);
   }
 
   // Generate TOTP code
