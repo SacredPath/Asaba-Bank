@@ -34,7 +34,7 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
   const supabase = useSupabase();
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && typeof user.id === 'string' && user.id !== 'undefined' && user.id !== 'null' && user.id.trim() !== '') {
       fetchBalance();
       fetchRecipients();
       fetchWithdrawalCount();
@@ -64,7 +64,16 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
   };
 
   const fetchRecipients = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID available, skipping recipient fetch');
+      return;
+    }
+
+    // Additional check to ensure user ID is a valid UUID
+    if (typeof user.id !== 'string' || user.id === 'undefined' || user.id === 'null' || user.id.trim() === '') {
+      console.log('Invalid user ID:', user.id);
+      return;
+    }
 
     try {
       const { data, error } = await supabase

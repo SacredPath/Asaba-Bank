@@ -17,11 +17,7 @@ export default function DepositForm({ onClose }: DepositFormProps) {
     amount: '',
     accountType: 'checking',
     transferType: 'ach',
-    accountHolderName: '',
-    accountNumber: '',
-    routingNumber: '091000022', // Our Minnesota routing number
-    swiftCode: '',
-    description: ''
+    swiftCode: ''
   });
   const [userProfile, setUserProfile] = useState<any>(null);
 
@@ -66,12 +62,12 @@ export default function DepositForm({ onClose }: DepositFormProps) {
         user_id: user?.id,
         amount: amount,
         type: 'deposit',
-        description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.description || 'No description'}`,
+        description: `Deposit via ${formData.transferType.toUpperCase()} - ${formData.swiftCode || 'No description'}`,
         account_type: formData.accountType,
         transfer_type: formData.transferType,
-        account_holder_name: formData.accountHolderName,
-        account_number: formData.accountNumber,
-        routing_number: formData.routingNumber,
+        account_holder_name: userProfile?.full_name || user?.email, // Use user's name or email
+        account_number: userProfile?.account_number || 'N/A', // Use user's account number or 'N/A'
+        routing_number: userProfile?.routing_number || '091000022', // Use user's routing number or default
         swift_code: formData.swiftCode,
         fee: fee,
         status: 'pending' // Mark as pending until manually confirmed
@@ -193,51 +189,6 @@ export default function DepositForm({ onClose }: DepositFormProps) {
           </p>
         </div>
 
-        {/* Account Holder Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Your Account Holder Name
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.accountHolderName}
-            onChange={(e) => setFormData({...formData, accountHolderName: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Enter your account holder name"
-          />
-        </div>
-
-        {/* Account Number */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Your Account Number
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.accountNumber}
-            onChange={(e) => setFormData({...formData, accountNumber: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Enter your account number"
-          />
-        </div>
-
-        {/* Routing Number */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Your Routing Number
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.routingNumber}
-            onChange={(e) => setFormData({...formData, routingNumber: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Enter your routing number"
-          />
-        </div>
-
         {/* SWIFT Code (for wire transfers) */}
         {formData.transferType === 'wire' && (
           <div>
@@ -254,20 +205,6 @@ export default function DepositForm({ onClose }: DepositFormProps) {
             />
           </div>
         )}
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            value={formData.description}
-            onChange={(e) => setFormData({...formData, description: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Deposit description"
-          />
-        </div>
 
         {/* Fee Notice */}
         {formData.transferType === 'wire' && (

@@ -17,7 +17,7 @@ interface WithdrawalFormProps {
 
 // Destructure the props directly in the function signature
 export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const supabase = useSupabase();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -28,24 +28,64 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
     description: ''
   });
   const [recipients, setRecipients] = useState<any[]>([]);
+  const [recipientsLoading, setRecipientsLoading] = useState(true);
   const [showRecipientManager, setShowRecipientManager] = useState(false);
 
   useEffect(() => {
-    loadRecipients();
-  }, []);
+    if (authLoading) {
+      // Still loading auth, don't fetch recipients yet
+      return;
+    }
+    
+    // Only proceed if we have a valid user ID (not undefined, null, or empty string)
+    if (user?.id && typeof user.id === 'string' && user.id !== 'undefined' && user.id !== 'null' && user.id.trim() !== '') {
+      loadRecipients();
+    } else if (user === null) {
+      // User is not authenticated
+      setRecipientsLoading(false);
+    } else {
+      // User is undefined or has invalid ID
+      setRecipientsLoading(false);
+    }
+  }, [user?.id, user, authLoading]);
+
+  // Add a separate effect to retry loading when user ID becomes available
+  useEffect(() => {
+    if (!authLoading && user?.id && typeof user.id === 'string' && user.id !== 'undefined' && user.id !== 'null' && user.id.trim() !== '' && recipients.length === 0) {
+      loadRecipients();
+    }
+  }, [user?.id, authLoading, recipients.length]);
 
   const loadRecipients = async () => {
+    if (!user?.id) {
+      setRecipientsLoading(false);
+      return;
+    }
+
+    // Additional check to ensure user ID is a valid UUID
+    if (typeof user.id !== 'string' || user.id === 'undefined' || user.id === 'null' || user.id.trim() === '') {
+      setRecipientsLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('recipients')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
       setRecipients(data || []);
-    } catch (error) {
-      console.error('Error loading recipients:', error);
+    } catch (error: any) {
+      console.error('Error fetching recipients:', error);
+      toast.error('Failed to load recipients');
+    } finally {
+      setRecipientsLoading(false);
     }
   };
 
@@ -210,7 +250,13 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Select Recipient *
           </label>
-          {recipients.length > 0 ? (
+          {recipientsLoading ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <p className="text-sm text-blue-800">
+                Loading recipients...
+              </p>
+            </div>
+          ) : recipients.length > 0 ? (
             <select
               value={formData.recipientId}
               onChange={(e) => setFormData({...formData, recipientId: e.target.value})}
@@ -250,10 +296,10 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || recipients.length === 0}
+          disabled={loading || recipientsLoading || recipients.length === 0}
           className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition disabled:opacity-50"
         >
-          {loading ? 'Processing...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
+          {loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
         </button>
       </form>
 
