@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useSupabase } from '@/hooks/useSupabase';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Link from 'next/link';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export default function ResetPassword() {
   const supabase = useSupabase();
@@ -52,7 +53,7 @@ export default function ResetPassword() {
     }
     
     // Also listen for auth state changes (Supabase processes tokens automatically)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         // Check if this is a recovery session
         const hash = window.location.hash;
