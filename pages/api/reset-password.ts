@@ -87,13 +87,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'x-forwarded-proto': req.headers['x-forwarded-proto'],
     });
 
-    // Use admin.generateLink as PRIMARY method (gives better control over redirectTo)
+    // Use resetPasswordForEmail - this actually SENDS the email
     console.log('Sending password reset email to:', email);
     console.log('Using redirect URL:', redirectTo);
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Method 1: Use admin.generateLink (recommended - respects redirectTo better)
+    // Method 1: Use resetPasswordForEmail (actually sends email)
+    const { data: resetData, error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo,
+    });
+
+    if (!resetError) {
+      console.log('✅ Password reset email sent via resetPasswordForEmail');
+      console.log('Link redirects to:', redirectTo);
+      return res.status(200).json({
+        success: true,
+        message: 'Password reset email sent successfully',
+        email: email,
+        method: 'resetPasswordForEmail',
+        redirectTo: redirectTo,
+      });
+    }
+
+    // Fallback 1: Try admin.generateLink and then send email manually
+    console.log('⚠️ resetPasswordForEmail failed, trying admin.generateLink...');
+    console.log('Reset error:', resetError);
+    
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email: email,
@@ -102,23 +122,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    if (!linkError && linkData) {
-      console.log('✅ Password reset link generated via admin.generateLink');
-      console.log('Link redirects to:', redirectTo);
+    if (!linkError && linkData?.properties?.action_link) {
+      // admin.generateLink doesn't send email, so we need to use the recover endpoint
+      console.log('✅ Link generated, sending via recover endpoint...');
+      
+      const otpResponse = await fetch(`${supabaseUrl}/auth/v1/recover`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          redirect_to: redirectTo,
+        }),
+      });
+
+      const otpData = await otpResponse.json();
+
+      if (!otpResponse.ok) {
+        console.error('❌ Recover endpoint error:', otpData);
+        return res.status(otpResponse.status).json({
+          error: otpData.message || otpData.error_description || 'Failed to send reset email',
+          details: otpData,
+          redirectTo: redirectTo,
+        });
+      }
+
+      console.log('✅ Password reset email sent via recover endpoint');
       return res.status(200).json({
         success: true,
         message: 'Password reset email sent successfully',
         email: email,
-        method: 'generateLink',
-        redirectTo: redirectTo, // Return for debugging
+        method: 'recover',
+        redirectTo: redirectTo,
       });
     }
 
-    // Fallback: Use direct OTP endpoint
-    console.log('⚠️ admin.generateLink failed, trying direct OTP endpoint...');
-    console.log('Link error:', linkError);
-    
-    const otpResponse = await fetch(`${supabaseUrl}/auth/v1/recover`, {
+    // Final fallback: Direct recover endpoint call
+    console.log('⚠️ All methods failed, trying direct recover endpoint...');
+    const finalResponse = await fetch(`${supabaseUrl}/auth/v1/recover`, {
       method: 'POST',
       headers: {
         'apikey': supabaseServiceKey,
@@ -127,28 +171,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       body: JSON.stringify({
         email: email,
-        redirect_to: redirectTo, // Ensure this is the production URL
+        redirect_to: redirectTo,
       }),
     });
 
-    const otpData = await otpResponse.json();
+    const finalData = await finalResponse.json();
 
-    if (!otpResponse.ok) {
-      console.error('❌ OTP Error:', otpData);
-      return res.status(otpResponse.status).json({
-        error: otpData.message || otpData.error_description || 'Failed to send reset email',
-        details: otpData,
-        redirectTo: redirectTo, // Return for debugging
+    if (!finalResponse.ok) {
+      console.error('❌ Final recover attempt failed:', finalData);
+      return res.status(finalResponse.status).json({
+        error: finalData.message || finalData.error_description || 'Failed to send reset email',
+        details: finalData,
+        redirectTo: redirectTo,
       });
     }
 
-    console.log('✅ Password reset email sent via OTP endpoint');
+    console.log('✅ Password reset email sent via direct recover endpoint');
     return res.status(200).json({
       success: true,
       message: 'Password reset email sent successfully',
       email: email,
-      method: 'recover',
-      redirectTo: redirectTo, // Return for debugging
+      method: 'direct-recover',
+      redirectTo: redirectTo,
     });
   } catch (error: any) {
     console.error('Error sending password reset:', error);
