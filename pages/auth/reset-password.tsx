@@ -21,30 +21,86 @@ export default function ResetPassword() {
   const [isResetFlow, setIsResetFlow] = useState(false);
   
   useEffect(() => {
-    // Check URL for reset token (Supabase sends it as hash fragment)
+    // Check URL for reset token (Supabase sends it as hash fragment, query param, or code)
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       const query = router.query;
       
-      // Check for Supabase recovery token in hash or query params
+      // Check for Supabase recovery token in hash, query params, or code parameter
       const hasRecoveryToken = hash.includes('access_token') || 
                                hash.includes('type=recovery') ||
-                               query.type === 'recovery';
+                               hash.includes('#access_token') ||
+                               query.type === 'recovery' ||
+                               query.token ||
+                               query.code; // Supabase sometimes sends code parameter
       
       if (hasRecoveryToken) {
-        // Supabase will automatically process the token with detectSessionInUrl: true
-        // Wait a moment for the session to be established, then check
+        // Handle code parameter (Supabase sends this when redirecting)
         const checkSession = async () => {
-          // Give Supabase time to process the token
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // If we have a code parameter, exchange it for a session
+          if (query.code) {
+            try {
+              const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(query.code as string);
+              
+              if (exchangeError) {
+                console.error('Code exchange error:', exchangeError);
+                setErrorMsg('Invalid or expired reset link. Please request a new one.');
+                setIsResetFlow(false);
+                return;
+              }
+              
+              if (exchangeData.session) {
+                setIsResetFlow(true);
+                setSuccessMsg('Please enter your new password below.');
+                // Clear the code from URL
+                router.replace('/auth/reset-password', undefined, { shallow: true });
+                return;
+              }
+            } catch (error) {
+              console.error('Code exchange failed:', error);
+            }
+          }
+          
+          // Give Supabase time to process the token automatically
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           const { data: { session }, error } = await supabase.auth.getSession();
           
-          if (error || !session) {
+          if (error) {
+            console.error('Session error:', error);
             setErrorMsg('Invalid or expired reset link. Please request a new one.');
             setIsResetFlow(false);
-          } else {
+            return;
+          }
+          
+          if (session) {
+            // Check if this is a recovery session
             setIsResetFlow(true);
+            setSuccessMsg('Please enter your new password below.');
+          } else {
+            // Try to exchange the token manually from hash
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const tokenType = hashParams.get('type');
+            
+            if (accessToken && tokenType === 'recovery') {
+              // Try to set the session with the token
+              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: hashParams.get('refresh_token') || '',
+              });
+              
+              if (sessionError || !sessionData.session) {
+                setErrorMsg('Invalid or expired reset link. Please request a new one.');
+                setIsResetFlow(false);
+              } else {
+                setIsResetFlow(true);
+                setSuccessMsg('Please enter your new password below.');
+              }
+            } else {
+              setErrorMsg('Invalid or expired reset link. Please request a new one.');
+              setIsResetFlow(false);
+            }
           }
         };
         
@@ -52,12 +108,23 @@ export default function ResetPassword() {
       }
     }
     
-    // Also listen for auth state changes (Supabase processes tokens automatically)
+    // Listen for auth state changes (Supabase processes tokens automatically)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+      console.log('Auth state change:', event, session ? 'session exists' : 'no session');
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResetFlow(true);
+        setSuccessMsg('Please enter your new password below.');
+      } else if (event === 'SIGNED_IN' && session) {
         // Check if this is a recovery session
         const hash = window.location.hash;
         if (hash.includes('type=recovery') || hash.includes('access_token')) {
+          setIsResetFlow(true);
+          setSuccessMsg('Please enter your new password below.');
+        }
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        const hash = window.location.hash;
+        if (hash.includes('type=recovery')) {
           setIsResetFlow(true);
         }
       }
@@ -75,12 +142,19 @@ export default function ResetPassword() {
     setSuccessMsg('');
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      // Use API route with service role key for more reliable password resets
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        setErrorMsg(error.message || 'Failed to send reset email');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMsg(data.error || 'Failed to send reset email');
         setLoading(false);
         return;
       }

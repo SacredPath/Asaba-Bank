@@ -1,13 +1,23 @@
 // pages/index.tsx
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
 
 export default function Home() {
   const { user } = useAuth();
+  const router = useRouter();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  
+  // Check for password reset code in URL and redirect
+  useEffect(() => {
+    if (typeof window !== 'undefined' && router.query.code) {
+      // Redirect to reset password page with the code
+      router.replace(`/auth/reset-password?code=${router.query.code}`);
+    }
+  }, [router.query.code, router]);
 
   const handlePayRingClick = (e: React.MouseEvent) => {
     if (!user) {
