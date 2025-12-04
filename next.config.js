@@ -19,6 +19,28 @@ const nextConfig = {
       'supabase/functions': false,
     };
     
+    // Fix Watchpack errors on Windows by ignoring system files
+    if (!isServer) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/.next/**',
+          '**/pagefile.sys',
+          '**/hiberfil.sys',
+          '**/swapfile.sys',
+          '**/Thumbs.db',
+          '**/.DS_Store',
+          // Ignore root system files
+          /^[A-Z]:\\pagefile\.sys$/i,
+          /^[A-Z]:\\hiberfil\.sys$/i,
+          /^[A-Z]:\\swapfile\.sys$/i,
+        ],
+        poll: false,
+      };
+    }
+    
     return config;
   },
   async headers() {

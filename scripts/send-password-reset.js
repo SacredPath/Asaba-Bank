@@ -17,8 +17,12 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Get email and redirect URL from command line arguments
+// Default to production URL if NEXT_PUBLIC_SITE_URL is set
+const defaultRedirect = process.env.NEXT_PUBLIC_SITE_URL 
+  ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
+  : 'http://localhost:3000/auth/reset-password';
 const email = process.argv[2];
-const redirectUrl = process.argv[3] || 'http://localhost:3000/auth/reset-password';
+const redirectUrl = process.argv[3] || defaultRedirect;
 
 if (!email) {
   console.error('❌ Please provide an email address');
