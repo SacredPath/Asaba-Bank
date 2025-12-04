@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useSupabase } from '@/hooks/useSupabase';
 import LoadingOverlay from '@/components/LoadingOverlay';

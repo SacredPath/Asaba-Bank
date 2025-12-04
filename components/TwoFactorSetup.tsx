@@ -32,6 +32,8 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
     const newSecret = TwoFactorAuth.generateSecret();
     setSecret(newSecret);
     const qrUrl = TwoFactorAuth.generateQRCodeURL(user?.email || '', newSecret);
+    console.log('Generated secret:', newSecret);
+    console.log('Generated QR URL:', qrUrl);
     setQrCodeUrl(qrUrl);
   };
 
@@ -114,21 +116,49 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
             
             {qrCodeUrl && (
               <div className="flex justify-center mb-4">
-                <Image
-                  src={qrCodeUrl}
-                  alt="QR Code for 2FA"
-                  width={200}
-                  height={200}
-                  className="border border-gray-200 rounded-lg"
-                />
+                <div className="relative">
+                  <Image
+                    src={qrCodeUrl}
+                    alt="QR Code for 2FA"
+                    width={200}
+                    height={200}
+                    className="border border-gray-200 rounded-lg"
+                    onError={(e) => {
+                      console.error('QR code failed to load:', qrCodeUrl);
+                      e.currentTarget.style.display = 'none';
+                      // Show fallback message
+                      const fallback = document.createElement('div');
+                      fallback.className = 'text-center p-4 bg-gray-100 rounded-lg border border-gray-200';
+                      fallback.innerHTML = `
+                        <p class="text-sm text-gray-600 mb-2">QR Code could not be loaded</p>
+                        <p class="text-xs text-gray-500">Please use the manual entry code below</p>
+                      `;
+                      e.currentTarget.parentNode?.appendChild(fallback);
+                    }}
+                  />
+                </div>
               </div>
             )}
 
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-sm text-gray-600 mb-2">Manual entry code:</p>
-              <code className="text-sm font-mono bg-white p-2 rounded border">
-                {secret}
-              </code>
+              <div className="flex items-center space-x-2">
+                <code className="text-sm font-mono bg-white p-2 rounded border flex-1 text-center">
+                  {secret}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(secret);
+                    toast.success('Secret copied to clipboard!');
+                  }}
+                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enter this code manually in your authenticator app if the QR code doesn't work
+              </p>
             </div>
           </div>
 

@@ -43,10 +43,10 @@ export default function AccountOpeningStep4() {
 
   useEffect(() => {
     try {
-      // Retrieve data from localStorage
-      const step1Data = JSON.parse(localStorage.getItem('accountOpeningStep1Data') || '{}');
-      const step2Data = JSON.parse(localStorage.getItem('accountOpeningStep2Data') || '{}');
-      const step3Data = JSON.parse(localStorage.getItem('accountOpeningStep3Data') || '{}');
+          // Retrieve data from localStorage
+    const step1Data = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('accountOpeningStep1Data') || '{}') : {};
+    const step2Data = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('accountOpeningStep2Data') || '{}') : {};
+    const step3Data = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('accountOpeningStep3Data') || '{}') : {};
 
       // Combine all data
       const accountData = {
@@ -56,9 +56,11 @@ export default function AccountOpeningStep4() {
       };
 
       // Clear localStorage after successful submission
-      localStorage.removeItem('accountOpeningStep1Data');
-      localStorage.removeItem('accountOpeningStep2Data');
-      localStorage.removeItem('accountOpeningStep3Data');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accountOpeningStep1Data');
+        localStorage.removeItem('accountOpeningStep2Data');
+        localStorage.removeItem('accountOpeningStep3Data');
+      }
 
       // Navigate to confirmation page
       router.push('/account/open/confirmation');

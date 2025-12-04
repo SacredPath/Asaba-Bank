@@ -64,7 +64,9 @@ export default function AccountOpeningStep1() {
       
       if (validateForm()) {
         // Store form data in local storage for persistence between steps
-        localStorage.setItem('accountOpeningStep1Data', JSON.stringify(formData));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('accountOpeningStep1Data', JSON.stringify(formData));
+        }
         // Navigate to step2 without passing data in query parameters
         router.push('/account/open/step2');
       } else {

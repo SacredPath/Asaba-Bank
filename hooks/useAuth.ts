@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from './useSupabase';
-import { User } from '@supabase/supabase-js';
+import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 interface AuthHookResult {
   user: User | null;
@@ -59,7 +59,7 @@ export function useAuth(): AuthHookResult {
 
   useEffect(() => {
     // Manually check the session first
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }: { data: { session: Session | null }, error: any }) => {
       if (session) {
         setUser(session.user);
         setLastActivity(Date.now()); // Reset activity timer
@@ -72,7 +72,7 @@ export function useAuth(): AuthHookResult {
 
     // Set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         // Update the user state based on the session
         setUser(session?.user || null);
         setLastActivity(Date.now()); // Reset activity timer

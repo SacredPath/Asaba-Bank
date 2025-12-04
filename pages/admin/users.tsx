@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupabase } from '@/hooks/useSupabase';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
@@ -298,16 +298,16 @@ export default function AdminUsers() {
                             Ban
                           </button>
                         )}
-                        <button
+                <button
                           onClick={() => handleUserAction('delete', user.id)}
                           className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
+                >
+                  Delete
+                </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+            ))}
               </tbody>
             </table>
           </div>

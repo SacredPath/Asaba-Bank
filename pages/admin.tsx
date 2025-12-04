@@ -2,7 +2,7 @@
 'use client'; // This directive marks the page as a Client Component.
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation'; // Correct import for useRouter in Next.js App Router
+import { useRouter } from 'next/router';
 import Layout from '@/components/Layout'; // Assuming your Layout component exists
 // Import createBrowserClient for client-side Supabase interactions.
 import { useSupabase } from '@/hooks/useSupabase';

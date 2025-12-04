@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'; // Correct import for useRouter in 
 import { createBrowserClient } from '@supabase/ssr'; // Use createBrowserClient for client-side Supabase
 import { useState, useEffect } from 'react';
 import { useSupabase } from '@/hooks/useSupabase';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 
 // Define the props interface for the Navbar component
@@ -40,7 +41,7 @@ export default function Navbar({}: NavbarProps) {
     getUser();
 
     // Listen for auth state changes to update the user's email dynamically
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session?.user) {
         // Corrected: Use nullish coalescing operator (??) to convert undefined to null
         setUserEmail(session.user.email ?? null);

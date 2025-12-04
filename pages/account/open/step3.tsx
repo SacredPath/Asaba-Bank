@@ -141,7 +141,9 @@ const Step3: React.FC = () => {
 
     setIsSubmitting(true);
     // Store data in localStorage
-    localStorage.setItem('accountOpeningStep3Data', JSON.stringify(formData));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accountOpeningStep3Data', JSON.stringify(formData));
+    }
 
     // Navigate to next step
     router.push('/account/open/step4');

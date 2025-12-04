@@ -67,7 +67,9 @@ export class TwoFactorAuth {
   static generateSecret(): string {
     // Generate 20 bytes (160 bits) for the secret
     const secretBytes = randomBytes(20);
-    return base32Encode(secretBytes);
+    const secret = base32Encode(secretBytes);
+    // Ensure the secret is properly formatted (remove padding for QR codes)
+    return secret.replace(/=/g, '');
   }
 
   // Generate TOTP code
@@ -108,8 +110,11 @@ export class TwoFactorAuth {
 
   // Generate QR code URL for authenticator apps
   static generateQRCodeURL(email: string, secret: string, issuer: string = 'Asaba Bank'): string {
+    // Create the otpauth URL with proper encoding
     const otpauth = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${this.DIGITS}&period=${this.PERIOD}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauth)}`;
+    
+    // Use a more reliable QR code service
+    return `https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=${encodeURIComponent(otpauth)}`;
   }
 
   // Generate backup codes

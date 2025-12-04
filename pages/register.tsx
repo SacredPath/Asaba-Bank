@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 import { useSupabase } from '@/hooks/useSupabase';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';

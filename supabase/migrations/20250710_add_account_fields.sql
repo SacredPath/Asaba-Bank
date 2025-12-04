@@ -20,12 +20,12 @@ SET
     account_name = (SELECT full_name FROM profiles WHERE profiles.id = accounts.user_id),
     account_number = (SELECT 
         CASE 
-            WHEN type = 'checking' THEN 
+            WHEN account_type = 'checking' THEN 
                 CONCAT(
                     '1',  -- First digit for checking accounts
                     LPAD(CAST((RANDOM() * 999999999) + 1 AS TEXT), 9, '0')  -- 9 random digits
                 )
-            WHEN type = 'savings' THEN 
+            WHEN account_type = 'savings' THEN 
                 CONCAT(
                     '2',  -- First digit for savings accounts
                     LPAD(CAST((RANDOM() * 999999999) + 1 AS TEXT), 9, '0')  -- 9 random digits
@@ -34,11 +34,11 @@ SET
         END
     ),
     routing_number = CASE 
-        WHEN type = 'checking' THEN '123456789'
-        WHEN type = 'savings' THEN '987654321'
+        WHEN account_type = 'checking' THEN '123456789'
+        WHEN account_type = 'savings' THEN '987654321'
         ELSE ''
     END,
     status = 'active';
 
 -- Verify the update
-SELECT id, type, account_name, account_number, routing_number FROM accounts;
+SELECT id, account_type, account_name, account_number, routing_number FROM accounts;
