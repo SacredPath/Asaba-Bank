@@ -11,13 +11,31 @@ export default function Home() {
   const router = useRouter();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   
-  // Check for password reset code in URL and redirect
+  // Check for password reset token in URL (hash fragment or query param) and redirect immediately
   useEffect(() => {
-    if (typeof window !== 'undefined' && router.query.code) {
-      // Redirect to reset password page with the code
-      router.replace(`/auth/reset-password?code=${router.query.code}`);
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const query = router.query;
+      
+      // Check for recovery token in hash fragment (access_token with type=recovery)
+      const hasRecoveryTokenInHash = hash && 
+                                     hash.includes('access_token') && 
+                                     (hash.includes('type=recovery') || hash.includes('&type=recovery'));
+      
+      // Check for code parameter
+      const hasCode = query.code;
+      
+      if (hasRecoveryTokenInHash) {
+        // Immediately redirect to reset password page, preserving the hash
+        // Use window.location for immediate redirect (router might be slower)
+        window.location.href = `/auth/reset-password${hash}`;
+        return;
+      } else if (hasCode) {
+        // Redirect to reset password page with the code
+        router.replace(`/auth/reset-password?code=${query.code}`);
+      }
     }
-  }, [router.query.code, router]);
+  }, [router.query, router]);
 
   const handlePayRingClick = (e: React.MouseEvent) => {
     if (!user) {

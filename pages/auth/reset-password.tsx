@@ -35,9 +35,9 @@ export default function ResetPassword() {
                                query.code; // Supabase sometimes sends code parameter
       
       if (hasRecoveryToken) {
-        // Handle code parameter (Supabase sends this when redirecting)
+        // Handle recovery token immediately
         const checkSession = async () => {
-          // If we have a code parameter, exchange it for a session
+          // Priority 1: If we have a code parameter, exchange it for a session
           if (query.code) {
             try {
               const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(query.code as string);
@@ -61,8 +61,45 @@ export default function ResetPassword() {
             }
           }
           
-          // Give Supabase time to process the token automatically
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Priority 2: If we have hash fragment with access_token, process it immediately
+          if (hash && hash.includes('access_token')) {
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const tokenType = hashParams.get('type');
+            const refreshToken = hashParams.get('refresh_token');
+            
+            if (accessToken && tokenType === 'recovery') {
+              console.log('Processing recovery token from hash...');
+              try {
+                // Set the session with the token from hash
+                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken || '',
+                });
+                
+                if (sessionError) {
+                  console.error('Session error:', sessionError);
+                  setErrorMsg('Invalid or expired reset link. Please request a new one.');
+                  setIsResetFlow(false);
+                  return;
+                }
+                
+                if (sessionData.session) {
+                  console.log('Recovery session established');
+                  setIsResetFlow(true);
+                  setSuccessMsg('Please enter your new password below.');
+                  // Clear hash from URL
+                  window.history.replaceState(null, '', '/auth/reset-password');
+                  return;
+                }
+              } catch (error) {
+                console.error('Failed to set session from hash:', error);
+              }
+            }
+          }
+          
+          // Priority 3: Give Supabase time to process the token automatically (fallback)
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           const { data: { session }, error } = await supabase.auth.getSession();
           
@@ -78,29 +115,8 @@ export default function ResetPassword() {
             setIsResetFlow(true);
             setSuccessMsg('Please enter your new password below.');
           } else {
-            // Try to exchange the token manually from hash
-            const hashParams = new URLSearchParams(hash.substring(1));
-            const accessToken = hashParams.get('access_token');
-            const tokenType = hashParams.get('type');
-            
-            if (accessToken && tokenType === 'recovery') {
-              // Try to set the session with the token
-              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: hashParams.get('refresh_token') || '',
-              });
-              
-              if (sessionError || !sessionData.session) {
-                setErrorMsg('Invalid or expired reset link. Please request a new one.');
-                setIsResetFlow(false);
-              } else {
-                setIsResetFlow(true);
-                setSuccessMsg('Please enter your new password below.');
-              }
-            } else {
-              setErrorMsg('Invalid or expired reset link. Please request a new one.');
-              setIsResetFlow(false);
-            }
+            setErrorMsg('Invalid or expired reset link. Please request a new one.');
+            setIsResetFlow(false);
           }
         };
         
