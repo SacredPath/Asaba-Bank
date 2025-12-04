@@ -32,10 +32,13 @@ const nextConfig = {
           '**/swapfile.sys',
           '**/Thumbs.db',
           '**/.DS_Store',
-          // Ignore root system files
-          /^[A-Z]:\\pagefile\.sys$/i,
-          /^[A-Z]:\\hiberfil\.sys$/i,
-          /^[A-Z]:\\swapfile\.sys$/i,
+          // Ignore root system files (Windows drive root)
+          '**/C:/pagefile.sys',
+          '**/C:/hiberfil.sys',
+          '**/C:/swapfile.sys',
+          '**/D:/pagefile.sys',
+          '**/D:/hiberfil.sys',
+          '**/D:/swapfile.sys',
         ],
         poll: false,
       };
