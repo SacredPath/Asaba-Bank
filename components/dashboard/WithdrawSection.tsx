@@ -129,8 +129,8 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
       return;
     }
 
-    // Block withdrawals after third withdrawal
-    if (withdrawalCount >= 3) {
+    // Block withdrawals after second withdrawal (limit is 2)
+    if (withdrawalCount >= 2) {
       toast.error('You have reached your withdrawal limit. You cannot make any more withdrawals. Please contact support for assistance.', {
         duration: 8000,
       });
@@ -195,8 +195,8 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
       
       toast.success(`Withdrawal of $${withdrawalAmount.toFixed(2)} submitted successfully!`);
       
-      // Show support contact message after second withdrawal
-      if (withdrawalCount + 1 >= 2) {
+      // Show support contact message after second withdrawal (when count becomes 2)
+      if (withdrawalCount + 1 === 2) {
         toast.error('For additional withdrawals, please contact our support team at support@asababank.com or call 1-800-ASABA-BANK.', {
           duration: 8000,
         });
@@ -279,16 +279,16 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
 
         <button
           onClick={handleWithdrawal}
-          disabled={isProcessing || !selectedRecipient || !amount || parseFloat(amount) <= 0 || withdrawalCount >= 3}
+          disabled={isProcessing || !selectedRecipient || !amount || parseFloat(amount) <= 0 || withdrawalCount >= 2}
           className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           {isProcessing ? 'Processing...' : 'Submit Withdrawal'}
         </button>
 
-        {withdrawalCount >= 3 && (
+        {withdrawalCount >= 2 && (
           <div className="p-4 border border-red-200 rounded-lg bg-red-50">
             <p className="text-red-800 text-sm">
-              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit and cannot make any more withdrawals. Please contact support for assistance.
+              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit (2 withdrawals) and cannot make any more withdrawals. Please contact support for assistance.
             </p>
           </div>
         )}

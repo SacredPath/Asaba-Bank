@@ -56,17 +56,17 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
             </button>
             <button
               onClick={() => setShowWithdrawForm(true)}
-              disabled={profile?.withdrawal_count >= 3}
+              disabled={profile?.withdrawal_count >= 2}
               className="flex-1 bg-red-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-red-700 transition text-xs sm:text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {profile?.withdrawal_count >= 3 ? 'Limit Reached' : 'Withdraw'}
+              {profile?.withdrawal_count >= 2 ? 'Limit Reached' : 'Withdraw'}
             </button>
           </div>
           
-          {profile?.withdrawal_count >= 3 && (
+          {profile?.withdrawal_count >= 2 && (
             <div className="mt-2 p-2 border border-red-200 rounded bg-red-50">
               <p className="text-red-800 text-xs">
-                Withdrawal limit reached. Contact support for assistance.
+                Withdrawal limit reached (2 withdrawals). Contact support for assistance.
               </p>
             </div>
           )}
@@ -96,17 +96,17 @@ export default function AccountSummary({ profile, onUpdate }: AccountSummaryProp
             </button>
             <button
               onClick={() => setShowWithdrawForm(true)}
-              disabled={profile?.withdrawal_count >= 3}
+              disabled={profile?.withdrawal_count >= 2}
               className="flex-1 bg-red-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-red-700 transition text-xs sm:text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {profile?.withdrawal_count >= 3 ? 'Limit Reached' : 'Withdraw'}
+              {profile?.withdrawal_count >= 2 ? 'Limit Reached' : 'Withdraw'}
             </button>
           </div>
           
-          {profile?.withdrawal_count >= 3 && (
+          {profile?.withdrawal_count >= 2 && (
             <div className="mt-2 p-2 border border-red-200 rounded bg-red-50">
               <p className="text-red-800 text-xs">
-                Withdrawal limit reached. Contact support for assistance.
+                Withdrawal limit reached (2 withdrawals). Contact support for assistance.
               </p>
             </div>
           )}
