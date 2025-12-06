@@ -111,19 +111,36 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
     setVerifying(false);
 
     try {
+      // Validate amount
       const amount = parseFloat(formData.amount);
+      if (!formData.amount || formData.amount.trim() === '') {
+        toast.error('Please enter an amount');
+        setLoading(false);
+        return;
+      }
+      
       if (isNaN(amount) || amount <= 0) {
-        toast.error('Please enter a valid amount');
+        toast.error('Please enter a valid amount greater than 0');
         setLoading(false);
         return;
       }
 
-      if (!formData.recipientId) {
+      // Validate recipient
+      if (!formData.recipientId || formData.recipientId.trim() === '') {
         toast.error('Please select a recipient');
+        setLoading(false);
+        return;
+      }
+
+      // Validate user
+      if (!user?.id) {
+        toast.error('You must be logged in to make a withdrawal');
         setLoading(false);
         return;
       }
@@ -132,17 +149,26 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('[WithdrawalForm] Profile fetch error:', profileError);
+        throw new Error(`Failed to load account: ${profileError.message}`);
+      }
+
+      if (!profile) {
+        throw new Error('Profile not found');
+      }
 
       const currentBalance = formData.accountType === 'checking' 
-        ? profile.checking_balance || 0 
-        : profile.savings_balance || 0;
+        ? (profile.checking_balance || 0)
+        : (profile.savings_balance || 0);
+
+      console.log('[WithdrawalForm] Current balance:', currentBalance, 'Amount:', amount);
 
       if (amount > currentBalance) {
-        toast.error('Insufficient funds');
+        toast.error(`Insufficient funds. Available: $${currentBalance.toFixed(2)}`);
         setLoading(false);
         return;
       }
@@ -178,15 +204,37 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       const newBalance = currentBalance - amount;
       const updateField = formData.accountType === 'checking' ? 'checking_balance' : 'savings_balance';
       
-      const { error: updateError } = await supabase
+      console.log('[WithdrawalForm] Updating balance:', {
+        updateField,
+        currentBalance,
+        amount,
+        newBalance,
+        withdrawalCount: withdrawalCount + 1
+      });
+
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({ 
           [updateField]: newBalance,
           withdrawal_count: withdrawalCount + 1
         })
-        .eq('id', user?.id);
+        .eq('id', user.id)
+        .select()
+        .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('[WithdrawalForm] Balance update error:', updateError);
+        throw new Error(`Failed to update balance: ${updateError.message}`);
+      }
+
+      if (!updatedProfile) {
+        throw new Error('Balance update failed - no data returned');
+      }
+
+      console.log('[WithdrawalForm] Balance updated successfully:', updatedProfile);
+      
+      // Update local profile state
+      setProfile(updatedProfile);
 
       // Log transaction - match the actual database schema
       const transactionData = {
@@ -210,21 +258,42 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
       console.log('[WithdrawalForm] Transaction created successfully');
 
       setVerifying(false);
-      toast.success(`Withdrawal to ${recipientName} processed successfully`);
+      setLoading(false);
+      
+      // Reset form
+      setFormData({
+        amount: '',
+        accountType: 'checking',
+        transferType: 'ach',
+        recipientId: '',
+        description: ''
+      });
+      
+      // Reload profile to get updated balance
+      await loadProfile();
+      
+      toast.success(`Withdrawal of $${amount.toFixed(2)} to ${recipientName} processed successfully`);
       
       // Show support contact message after second withdrawal
       if (withdrawalCount + 1 >= 2) {
-        toast.error('For additional withdrawals, please contact our support team at support@asababank.com or call 1-800-ASABA-BANK.', {
-          duration: 8000,
-        });
+        setTimeout(() => {
+          toast.error('For additional withdrawals, please contact our support team at support@asababank.com or call 1-800-ASABA-BANK.', {
+            duration: 8000,
+          });
+        }, 1000);
       }
       
-      onClose();
+      // Close form after a short delay to show success message
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error: any) {
       console.error('[WithdrawalForm] Error:', error);
       setVerifying(false);
       setLoading(false);
-      toast.error(`Withdrawal failed: ${error.message}`);
+      const errorMessage = error.message || 'An unexpected error occurred';
+      setErrorMsg(errorMessage);
+      toast.error(`Withdrawal failed: ${errorMessage}`);
     }
   };
 
@@ -338,13 +407,20 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
           />
         </div>
 
+        {/* Error Message Display */}
+        {errorMsg && (
+          <div className="p-2 border border-red-200 rounded-lg bg-red-50">
+            <p className="text-red-800 text-xs">{errorMsg}</p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || verifying || recipientsLoading || recipients.length === 0}
-          className="w-full bg-red-600 text-white py-1.5 px-3 text-sm font-medium rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition disabled:opacity-50 mt-2"
+          disabled={loading || verifying || recipientsLoading || recipients.length === 0 || !formData.amount || !formData.recipientId}
+          className="w-full bg-red-600 text-white py-1.5 px-3 text-sm font-medium rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
-          {verifying ? 'Verifying...' : loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
+          {verifying ? 'Verifying...' : loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : !formData.amount ? 'Enter Amount' : !formData.recipientId ? 'Select Recipient' : 'Withdraw Funds'}
         </button>
 
         {/* Withdrawal Limit Warning */}
