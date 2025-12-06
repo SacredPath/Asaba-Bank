@@ -229,23 +229,23 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Withdraw Funds</h2>
+    <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Withdraw Funds</h2>
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5">
             Amount
           </label>
           <input
@@ -255,20 +255,20 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
             required
             value={formData.amount}
             onChange={(e) => setFormData({...formData, amount: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Enter amount"
           />
         </div>
 
         {/* Account Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5">
             From Account
           </label>
           <select
             value={formData.accountType}
             onChange={(e) => setFormData({...formData, accountType: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="checking">Life Green Checking</option>
             <option value="savings">BigTree Savings</option>
@@ -277,13 +277,13 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
         {/* Transfer Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5">
             Transfer Method
           </label>
           <select
             value={formData.transferType}
             onChange={(e) => setFormData({...formData, transferType: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="ach">ACH Transfer</option>
             <option value="wire">Wire Transfer</option>
@@ -292,12 +292,12 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
         {/* Recipient Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5">
             Select Recipient *
           </label>
           {recipientsLoading ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+              <p className="text-xs text-blue-800">
                 Loading recipients...
               </p>
             </div>
@@ -306,9 +306,9 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
               value={formData.recipientId}
               onChange={(e) => setFormData({...formData, recipientId: e.target.value})}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
-              <option value="">Choose a recipient to withdraw to</option>
+              <option value="">Choose a recipient</option>
               {recipients.map((recipient) => (
                 <option key={recipient.id} value={recipient.id}>
                   {recipient.nickname} - {recipient.account_name} ({recipient.bank_name})
@@ -316,9 +316,9 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
               ))}
             </select>
           ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              <p className="text-sm text-yellow-800">
-                <strong>No recipients found.</strong> You need to add a recipient account before making withdrawals.
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2">
+              <p className="text-xs text-yellow-800">
+                <strong>No recipients found.</strong> Add a recipient account first.
               </p>
             </div>
           )}
@@ -326,14 +326,14 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5">
             Description
           </label>
           <input
             type="text"
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="Withdrawal description"
           />
         </div>
@@ -342,26 +342,30 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
         <button
           type="submit"
           disabled={loading || verifying || recipientsLoading || recipients.length === 0}
-          className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition disabled:opacity-50"
+          className="w-full bg-red-600 text-white py-1.5 px-3 text-sm font-medium rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition disabled:opacity-50 mt-2"
         >
           {verifying ? 'Verifying...' : loading ? 'Processing...' : recipientsLoading ? 'Loading Recipients...' : recipients.length === 0 ? 'Add Recipients First' : 'Withdraw Funds'}
         </button>
 
         {/* Withdrawal Limit Warning */}
         {profile?.withdrawal_count >= 3 && (
-          <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-            <p className="text-red-800 text-sm">
-              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit and cannot make any more withdrawals. Please contact support for assistance.
+          <div className="p-2 border border-red-200 rounded-lg bg-red-50">
+            <p className="text-red-800 text-xs">
+              <strong>Withdrawal Limit Reached:</strong> You have reached your withdrawal limit. Please contact support for assistance.
             </p>
           </div>
         )}
       </form>
 
-      {/* Recipient Management Section */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <h3 className="text-xl font-bold mb-4">Manage Recipient Accounts (for Transfers)</h3>
-        <RecipientManager />
-      </div>
+      {/* Recipient Management Section - Collapsible */}
+      <details className="mt-4 pt-3 border-t border-gray-200">
+        <summary className="text-sm font-semibold text-gray-700 cursor-pointer hover:text-gray-900">
+          Manage Recipient Accounts
+        </summary>
+        <div className="mt-2">
+          <RecipientManager />
+        </div>
+      </details>
     </div>
   );
 }

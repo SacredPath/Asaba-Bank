@@ -42,9 +42,9 @@ export default function Withdraw() {
   if (!user || loading) return <p className="p-6">Loading...</p>;
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4">
+    <div className="max-w-3xl mx-auto py-4 sm:py-6 px-3 sm:px-4">
       <Toaster position="top-center" />
-      <h1 className="text-3xl font-bold text-indigo-900 mb-6">Withdraw Funds</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-indigo-900 mb-3 sm:mb-4">Withdraw Funds</h1>
       <WithdrawalForm
         onClose={() => {
           toast.success('Withdrawal request submitted');

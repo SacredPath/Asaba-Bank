@@ -80,8 +80,8 @@ export default function WithdrawPage() {
   if (!user) return <p className="p-6">You must be logged in to withdraw funds.</p>;
 
   return (
-    <main className="max-w-4xl mx-auto p-6 min-h-screen">
-      <h1 className="text-2xl font-bold text-indigo-800 mb-6">Withdraw Funds</h1>
+    <main className="max-w-4xl mx-auto p-3 sm:p-6 min-h-screen">
+      <h1 className="text-xl sm:text-2xl font-bold text-indigo-800 mb-3 sm:mb-4">Withdraw Funds</h1>
       {error && (
         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
           <p className="text-red-700">{error}</p>
