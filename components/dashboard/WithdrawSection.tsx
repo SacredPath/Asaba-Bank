@@ -195,6 +195,46 @@ export default function WithdrawSection({ accountType, balance: initialBalance, 
       
       toast.success(`Withdrawal of $${withdrawalAmount.toFixed(2)} submitted successfully!`);
       
+      // Send withdrawal notification emails
+      try {
+        const accountOwnerEmail = user?.email;
+        const recipientEmail = recipient?.email; // If recipients table has email field
+        
+        if (accountOwnerEmail) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+          const emailResponse = await fetch('/api/send-withdrawal-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accountOwnerEmail: accountOwnerEmail,
+              recipientEmail: recipientEmail || null,
+              amount: withdrawalAmount,
+              accountType: accountType.toLowerCase(),
+              transferType: 'Transfer',
+              recipientName: recipient.nickname || recipient.account_name,
+              accountOwnerName: profileData?.full_name || accountOwnerEmail,
+              description: `Withdrawal to ${recipient.nickname}`
+            }),
+          });
+
+          if (emailResponse.ok) {
+            console.log('Withdrawal emails sent successfully');
+          } else {
+            console.error('Failed to send withdrawal emails');
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending withdrawal emails:', emailError);
+        // Don't throw error - withdrawal was successful, email is just a notification
+      }
+      
       // Show support contact message after second withdrawal (when count becomes 2)
       if (withdrawalCount + 1 === 2) {
         toast.error('For additional withdrawals, please contact our support team at support@asababank.com or call 1-800-ASABA-BANK.', {

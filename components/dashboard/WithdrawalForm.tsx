@@ -257,6 +257,41 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
       console.log('[WithdrawalForm] Transaction created successfully');
 
+      // Send withdrawal notification emails
+      try {
+        const accountOwnerEmail = user?.email || profile?.email;
+        const recipientEmail = selectedRecipient?.email; // If recipients table has email field
+        
+        if (accountOwnerEmail) {
+          const emailResponse = await fetch('/api/send-withdrawal-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accountOwnerEmail: accountOwnerEmail,
+              recipientEmail: recipientEmail || null,
+              amount: amount,
+              accountType: formData.accountType,
+              transferType: formData.transferType,
+              recipientName: recipientName,
+              accountOwnerName: profile?.full_name || accountOwnerEmail,
+              description: formData.description || ''
+            }),
+          });
+
+          if (emailResponse.ok) {
+            console.log('[WithdrawalForm] Withdrawal emails sent successfully');
+          } else {
+            console.error('[WithdrawalForm] Failed to send withdrawal emails');
+            // Don't throw error - withdrawal was successful, email is just a notification
+          }
+        }
+      } catch (emailError) {
+        console.error('[WithdrawalForm] Error sending withdrawal emails:', emailError);
+        // Don't throw error - withdrawal was successful, email is just a notification
+      }
+
       setVerifying(false);
       setLoading(false);
       
