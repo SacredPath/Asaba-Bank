@@ -32,6 +32,7 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
   const [recipients, setRecipients] = useState<any[]>([]);
   const [recipientsLoading, setRecipientsLoading] = useState(true);
   const [showRecipientManager, setShowRecipientManager] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (authLoading) {
@@ -111,8 +112,6 @@ export default function WithdrawalForm({ onClose }: WithdrawalFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
     setLoading(true);
     setVerifying(false);
 

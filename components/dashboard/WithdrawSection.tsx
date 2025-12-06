@@ -13,6 +13,7 @@ interface Recipient {
   routing_number: string;
   nickname: string;
   bank_name: string;
+  email?: string; // Optional email for withdrawal notifications
 }
 
 interface WithdrawSectionProps {
